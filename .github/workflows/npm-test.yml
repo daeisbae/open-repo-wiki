@@ -1,0 +1,27 @@
+name: Test
+
+on:
+  pull_request:
+    branches: [ "main" ]
+
+env:
+  NODE_VERSION: 22
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+    
+    - name: Use Node.js ${{ env.NODE_VERSION }}
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ env.NODE_VERSION }}
+        
+    - name: Install Dependencies
+      run: npm install
+      
+    - name: Test
+      run: npm test
