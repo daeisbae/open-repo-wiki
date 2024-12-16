@@ -82,7 +82,7 @@ https://api.github.com/repos/octocat/Hello-World
   "name": "Hello-World",
   "full_name": "octocat/Hello-World",
   "owner": {
-    "login": "octocat",
+    "login": "octocat"
   },
   "html_url": "https://github.com/octocat/Hello-World",
   "description": "My first repository on GitHub!",
@@ -98,33 +98,37 @@ https://api.github.com/repos/octocat/Hello-World
 
 ## 2.2 Crawl the file tree of the Repository
 
-Retrieve the file tree of the given repository by providing the repo owner, the name of the repo, and the default_branch from crawling the Github Repo Information
+Retrieve the file tree of the given repository by providing the repo owner, the name of the repo, and the commit hash.
 
 ### 2.2.1 Information to fetch:
 
-- sha
-- tree.path
+- path
+- files
+- subdirectories
 
 ### 2.2.2 Example
 
-https://api.github.com/repos/octocat/Hello-World/git/trees/master?recursive=1
+https://api.github.com/repos/Octocat/Hello-World/contents?ref=7fd1a60b01f91b314f59955a4e4d4e80d8edf11d
 
 ```json
-{
-  "sha": "7fd1a60b01f91b314f59955a4e4d4e80d8edf11d",
-  "url": "https://api.github.com/repos/octocat/Hello-World/git/trees/7fd1a60b01f91b314f59955a4e4d4e80d8edf11d",
-  "tree": [
-    {
-      "path": "README",
-      "mode": "100644",
-      "type": "blob",
-      "sha": "980a0d5f19a64b4b30a87d4206aade58726b60e3",
-      "size": 13,
-      "url": "https://api.github.com/repos/octocat/Hello-World/git/blobs/980a0d5f19a64b4b30a87d4206aade58726b60e3"
+[
+  {
+    "name": "README",
+    "path": "README",
+    "sha": "980a0d5f19a64b4b30a87d4206aade58726b60e3",
+    "size": 13,
+    "url": "https://api.github.com/repos/octocat/Hello-World/contents/README?ref=7fd1a60b01f91b314f59955a4e4d4e80d8edf11d",
+    "html_url": "https://github.com/octocat/Hello-World/blob/7fd1a60b01f91b314f59955a4e4d4e80d8edf11d/README",
+    "git_url": "https://api.github.com/repos/octocat/Hello-World/git/blobs/980a0d5f19a64b4b30a87d4206aade58726b60e3",
+    "download_url": "https://raw.githubusercontent.com/octocat/Hello-World/7fd1a60b01f91b314f59955a4e4d4e80d8edf11d/README",
+    "type": "file",
+    "_links": {
+      "self": "https://api.github.com/repos/octocat/Hello-World/contents/README?ref=7fd1a60b01f91b314f59955a4e4d4e80d8edf11d",
+      "git": "https://api.github.com/repos/octocat/Hello-World/git/blobs/980a0d5f19a64b4b30a87d4206aade58726b60e3",
+      "html": "https://github.com/octocat/Hello-World/blob/7fd1a60b01f91b314f59955a4e4d4e80d8edf11d/README"
     }
-  ],
-  "truncated": false
-}
+  }
+]
 ```
 
 ## 2.3 Crawl the files (Code) of the Repository
