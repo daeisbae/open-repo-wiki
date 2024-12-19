@@ -252,39 +252,48 @@ erDiagram
         int stars
         int forks
     }
-    
+
     Topics {
-		    string Topic
-		    string Url FK "References Repository"
+        string Topic PK
     }
-    
+
+    RepositoryTopics {
+	    string RepositoryUrl FK "References Repository"
+	    string Topic FK "References Topics"
+    }
+
     Branch {
         string LastCommitSha PK
         string Name PK
-        int Fork
-	      date Seen
+        date Seen
+        string AiAnalysisSummary
         string Url FK "References Repository"
     }
-    
-    Code {
-        string File PK
-        string Sha PK
-        string Language
-        string Data
+
+    Folder {
+        int FolderId PK
+        string Name
+        string Path "Optional"
+        string ParentFolderId FK "References Folder"
         string AiAnalysisSummary
         string BranchSha FK "References Branch"
         string BranchName FK "References Branch"
     }
-    
-    Function {
-        string Summary
-        string Code
-        string CodeFile FK "References Code"
-        string CodeSha FK "References Code"
+
+    File {
+		int FileID PK
+        string Name
+        string Sha
+        string Language
+        string Content
+        string AiAnalysisSummary
+        int FolderId FK "References Folder"
     }
 
     Repository ||--o{ Branch : has
-    Repository ||--o{ Topics : has
-    Branch ||--|{ Code : contains
-    Code ||--o{ Function : references
+    Repository ||--o{ RepositoryTopics : has
+    RepositoryTopics }o--|| Topics : references
+    Branch ||--o{ Folder : contains
+    Folder ||--o{ Folder : has_parent
+    Folder ||--|{ Module : contain
 ```
