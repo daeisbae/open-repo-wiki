@@ -295,5 +295,5 @@ erDiagram
     RepositoryTopics }o--|| Topics : references
     Branch ||--o{ Folder : contains
     Folder ||--o{ Folder : has_parent
-    Folder ||--|{ Module : contain
+    Folder ||--|{ File : contain
 ```
