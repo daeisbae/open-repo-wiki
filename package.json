@@ -10,7 +10,7 @@
     "test": "node --experimental-vm-modules node_modules/jest/bin/jest.js",
     "lint": "next lint"
     "db:init": "node --experimental-specifier-resolution=node src/db/scripts/init-db.js",
-    "db:delete": "node --experimental-specifier-resolution=node src/db/scripts/drop-db.js",
+    "db:delete": "node --experimental-specifier-resolution=node src/db/scripts/drop-db.js"
   },
   "dependencies": {
     "@google/generative-ai": "^0.21.0",
