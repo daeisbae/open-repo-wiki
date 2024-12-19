@@ -9,12 +9,16 @@
     "start": "next start",
     "test": "node --experimental-vm-modules node_modules/jest/bin/jest.js",
     "lint": "next lint"
+    "db:init": "node --experimental-specifier-resolution=node src/db/scripts/init-db.js",
+    "db:delete": "node --experimental-specifier-resolution=node src/db/scripts/drop-db.js",
   },
   "dependencies": {
     "@google/generative-ai": "^0.21.0",
     "axios": "^1.7.9",
+    "dotenv": "^16.4.7",
     "langchain": "^0.3.7",
     "next": "15.1.0",
+    "pg": "^8.13.1",
     "react": "^19.0.0",
     "react-dom": "^19.0.0"
   },
