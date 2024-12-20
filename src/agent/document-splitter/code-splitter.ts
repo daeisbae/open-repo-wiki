@@ -1,7 +1,17 @@
-import { RecursiveCharacterTextSplitter } from '@langchain/textsplitters';
+import { RecursiveCharacterTextSplitter, SupportedTextSplitterLanguage } from '@langchain/textsplitters';
+
+enum Language {
+    PYTHON = "python",
+    JS = "js",
+    GO = "go",
+    RUBY = "ruby",
+    RUST = "rust",
+    PHP = "php",
+    CPP = "cpp"
+  }
 
 /**
- * Splitting code into chunks into Langchain document depending on file extension.
+ * Splitting code chunks into Langchain document depending on file extension.
  */
 export default class CodeSplitter {
     /**
@@ -9,7 +19,7 @@ export default class CodeSplitter {
      * @param {number} chunkSize - The size of each chunk.
      * @param {number} chunkOverlap - The number of overlapping characters between chunks.
      */
-    constructor(chunkSize, chunkOverlap) {
+    constructor(public chunkSize: number, public chunkOverlap: number) {
         this.chunkSize = chunkSize;
         this.chunkOverlap = chunkOverlap;
     }
@@ -19,23 +29,23 @@ export default class CodeSplitter {
      * @param {string} extension - The file extension excluding the dot (e.g., 'js', 'py').
      * @returns {Language | null} - The corresponding Language enum or null (if not supported).
      */
-    #getLanguageFromExtension(extension) {
+    private getLanguageFromExtension(extension: string): SupportedTextSplitterLanguage | null {
         let extensionToLanguageMap = {
-            'py': 'python',
-            'js': 'js',
-            'jsx': 'js',
-            'ts': 'js',
-            'tsx': 'js',
-            'go': 'go',
-            'rb': 'ruby',
-            'rs': 'rust',
-            'php': 'php',
-            'cpp': 'cpp',
-            'cc': 'cpp',
-            'cxx': 'cpp',
-            'hpp': 'cpp',
-            'hxx': 'cpp',
-            'h': 'cpp',
+            'py': Language.PYTHON,
+            'js': Language.JS,
+            'jsx': Language.JS,
+            'ts': Language.JS,
+            'tsx': Language.JS,
+            'go': Language.GO,
+            'rb': Language.RUBY,
+            'rs': Language.RUST,
+            'php': Language.PHP,
+            'cpp': Language.CPP,
+            'cc': Language.CPP,
+            'cxx': Language.CPP,
+            'hpp': Language.CPP,
+            'hxx': Language.CPP,
+            'h': Language.CPP,
         };
         return extensionToLanguageMap[extension.toLowerCase()] || null;
     }
@@ -46,19 +56,17 @@ export default class CodeSplitter {
      * @param {string} code - The code content to be split.
      * @returns {Promise<Array<Document>> | null}  - A promise that resolves to an array of document chunks.
      */
-    async splitCode(fileExtension, code) {
-        const language = this.#getLanguageFromExtension(fileExtension);
+    async splitCode(fileExtension: string, code: string): Promise<Array<any> | null> {
+        const language : SupportedTextSplitterLanguage | null = this.getLanguageFromExtension(fileExtension);
         if (!language) {
             return null;
         }
-        
 
         const splitter = RecursiveCharacterTextSplitter.fromLanguage(language, {
             chunkSize: this.chunkSize,
             chunkOverlap: this.chunkOverlap,
         });
 
-        const documents = await splitter.createDocuments([code]);
-        return documents;
+        return splitter.createDocuments([code]);
     }
 }
