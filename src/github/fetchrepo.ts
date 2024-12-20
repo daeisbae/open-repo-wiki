@@ -21,7 +21,7 @@ interface TreeResponse {
 
 interface TreeItem {
   path: string;
-  type: 'blob' | 'tree';
+  type: 'file' | 'dir';
   sha: string;
   url: string;
 }
@@ -110,9 +110,9 @@ export async function fetchGithubRepoTree(
     };
 
     for (const item of data) {
-      if (item.type === 'blob') {
+      if (item.type === 'file') {
         result.files.push(item.path);
-      } else if (item.type === 'tree') {
+      } else if (item.type === 'dir') {
         const subDir = await fetchGithubRepoTree(owner, repo, sha, item.path);
         result.subdirectories.push(subDir);
       }

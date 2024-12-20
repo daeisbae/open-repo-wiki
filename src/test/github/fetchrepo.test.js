@@ -6,7 +6,7 @@ import {
 	fetchGithubRepoFile,
 } from "@/github/fetchrepo";
 
-const axiosMock = jest.mock("axios");
+jest.mock("axios");
 
 describe("fetchGithubRepoDetails", () => {
 	it("should fetch and return the repository details correctly", async () => {
@@ -26,7 +26,19 @@ describe("fetchGithubRepoDetails", () => {
 			},
 		};
 
-		axios.get = jest.fn(() => mockResponse);
+		const mockResponse2 = {
+			data: {
+				sha: "7fd1a60b01f91b314f59955a4e4d4e80d8edf11d",
+			},
+		};
+		axios.get = jest.fn();
+		axios.get.mockImplementation(async (url) => {
+			if (url.includes("/git/trees/master")) {
+				return mockResponse2;
+			} else {
+				return mockResponse;
+			}
+		});
 
 		const result = await fetchGithubRepoDetails("octocat", "Hello-World");
 
@@ -40,6 +52,7 @@ describe("fetchGithubRepoDetails", () => {
 			stars: 2769,
 			forks: 2499,
 			defaultBranch: "master",
+			sha: "7fd1a60b01f91b314f59955a4e4d4e80d8edf11d",
 		};
 
 		expect(result).toEqual(expectedOutput);
@@ -90,7 +103,6 @@ describe("fetchGithubRepoTree", () => {
 	});
 
 	it("should fetch repository tree structure recursively", async () => {
-		// Mock root directory response
 		const mockRootResponse = {
 			data: [
 				{
@@ -111,7 +123,6 @@ describe("fetchGithubRepoTree", () => {
 			],
 		};
 
-		// Mock .github directory response
 		const mockGithubDirResponse = {
 			data: [
 				{
@@ -122,7 +133,6 @@ describe("fetchGithubRepoTree", () => {
 			],
 		};
 
-		// Mock workflows directory response
 		const mockWorkflowsResponse = {
 			data: [
 				{
@@ -177,7 +187,9 @@ describe("fetchGithubRepoFile", () => {
 			"",
 		);
 
-		expect(result).toEqual(mockResponse);
+		const expectedOutput = "Hello World!";
+
+		expect(result).toEqual(expectedOutput);
 		expect(axios.get).toHaveBeenCalledWith(
 			"https://raw.githubusercontent.com/octocat/Hello-World/7fd1a60b01f91b314f59955a4e4d4e80d8edf11d/",
 		);
