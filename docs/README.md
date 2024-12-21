@@ -243,51 +243,51 @@ await chain.invoke({
 ```mermaid
 erDiagram
     Repository {
-        string Url PK
-        string Owner
-        string Repo
-        string Language
-        string Descriptions
-        string DefaultRepo
-        int stars
-        int forks
+        string url PK
+        string owner
+        string repo
+        string language
+        string descriptions
+        string default_branch
+        integer stars
+        integer forks
     }
 
     Topics {
-        string Topic PK
+        string topic_name PK
     }
 
     RepositoryTopics {
-	    string RepositoryUrl FK "References Repository"
-	    string Topic FK "References Topics"
+	    string repository_url FK "References Repository"
+	    string topic_name FK "References Topics"
     }
 
     Branch {
-        string LastCommitSha PK
-        string Name PK
-        date Seen
-        string AiAnalysisSummary
-        string Url FK "References Repository"
+        integer branch_id PK
+        string last_commit_sha
+        string name
+        string repository_url FK "References Repository"
+        string commit_at
+        string created_at
+        string ai_summary
     }
 
     Folder {
-        int FolderId PK
-        string Name
-        string Path "Optional"
-        string ParentFolderId FK "References Folder"
-        string AiAnalysisSummary
-        string BranchSha FK "References Branch"
-        string BranchName FK "References Branch"
+        integer folder_id PK
+        string name
+        string path
+        integer parent_folder_id FK "References Folder"
+        string ai_summary
+        integer branch_id FK "References Branch"
     }
 
     File {
-		int FileID PK
-        string Name
-        string Sha
-        string Language
-        string Content
-        string AiAnalysisSummary
-        int FolderId FK "References Folder"
+		integer file_id PK
+        string name
+        string language
+        integer folder_id FK "References Folder"
+        string content
+        string ai_summary
     }
 
     Repository ||--o{ Branch : has
@@ -295,5 +295,5 @@ erDiagram
     RepositoryTopics }o--|| Topics : references
     Branch ||--o{ Folder : contains
     Folder ||--o{ Folder : has_parent
-    Folder ||--|{ File : contain
+    Folder ||--|{ File : contains
 ```

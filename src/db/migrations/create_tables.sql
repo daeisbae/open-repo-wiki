@@ -1,55 +1,59 @@
-CREATE TABLE Repository (
-    url VARCHAR(255) PRIMARY KEY,
-    owner VARCHAR(50) NOT NULL,
-    repo VARCHAR(50) NOT NULL,
-    language VARCHAR(20) NOT NULL,
-    descriptions TEXT,
-    default_branch VARCHAR(50),
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+CREATE TABLE IF NOT EXISTS Repository (
+    url             VARCHAR(255) PRIMARY KEY,
+    owner           VARCHAR(50) NOT NULL,
+    repo            VARCHAR(50) NOT NULL,
+    language        VARCHAR(20) NOT NULL,
+    descriptions    TEXT,
+    default_branch  VARCHAR(50),
+    stars           INT,
+    forks           INT
 );
 
-CREATE TABLE Topics (
-    topic_name VARCHAR(50) PRIMARY KEY
+CREATE TABLE IF NOT EXISTS Topics (
+    topic_name      VARCHAR(50) PRIMARY KEY
 );
 
-CREATE TABLE RepositoryTopics (
-    repository_url VARCHAR(255),
-    topic_name VARCHAR(50),
+CREATE TABLE IF NOT EXISTS RepositoryTopics (
+    repository_url  VARCHAR(255),
+    topic_name      VARCHAR(50),
     PRIMARY KEY (repository_url, topic_name),
     FOREIGN KEY (repository_url) REFERENCES Repository(url),
     FOREIGN KEY (topic_name) REFERENCES Topics(topic_name)
 );
 
-
 /**
 Last Commit SHA length: https://stackoverflow.com/questions/18134627/how-much-of-a-git-sha-is-generally-considered-necessary-to-uniquely-identify-a
 */
-CREATE TABLE Branch (
-    last_commit_sha VARCHAR(40) NOT NULL PRIMARY KEY,
+CREATE TABLE IF NOT EXISTS Branch (
+    branch_id       SERIAL PRIMARY KEY,
+    last_commit_sha VARCHAR(40) NOT NULL,
     name            VARCHAR(50) NOT NULL,
     repository_url  VARCHAR(255),
     commit_at       TIMESTAMP,
-    CONSTRAINT fk_repository FOREIGN KEY (repository_url) REFERENCES Repository(url)
+    created_at      TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    ai_summary      TEXT,
+    FOREIGN KEY (repository_url) REFERENCES Repository(url),
+    CONSTRAINT unique_last_commit_per_repo UNIQUE (repository_url, last_commit_sha)
 );
 
-CREATE TABLE Folder (
-    folder_id SERIAL PRIMARY KEY,
-    name VARCHAR(30) NOT NULL,
-    path VARCHAR(100),
-    parent_folder_id SERIAL,
-    branch_sha VARCHAR(40) NOT NULL,
-    branch_name VARCHAR(50) NOT NULL,
+CREATE TABLE IF NOT EXISTS Folder (
+    folder_id           SERIAL PRIMARY KEY,
+    name                VARCHAR(30),
+    path                VARCHAR(100) NOT NULL,
+    parent_folder_id    INTEGER,
+    ai_summary          TEXT,
+    branch_id           INTEGER NOT NULL,
     FOREIGN KEY (parent_folder_id) REFERENCES Folder(folder_id),
-    FOREIGN KEY (branch_sha) REFERENCES Branch(last_commit_sha),
-    FOREIGN KEY (branch_name) REFERENCES Branch(name)
+    FOREIGN KEY (branch_id) REFERENCES Branch(branch_id),
+    CHECK ( (path = '' AND parent_folder_id IS NULL) OR (path != '' AND parent_folder_id IS NOT NULL) )
 );
 
-CREATE TABLE File (
-    file_id SERIAL PRIMARY KEY,
-    name VARCHAR(30) NOT NULL,
-    sha VARCHAR(40) NOT NULL,
-    language VARCHAR(20),
-    parent_folder_id SERIAL NOT NULL,
-    ai_summary TEXT,
-    FOREIGN KEY (parent_folder_id) REFERENCES Folder(folder_id)
+CREATE TABLE IF NOT EXISTS File (
+    file_id         SERIAL PRIMARY KEY,
+    name            VARCHAR(30) NOT NULL,
+    language        VARCHAR(20),
+    folder_id       INTEGER NOT NULL,
+    content         TEXT,
+    ai_summary      TEXT,
+    FOREIGN KEY (folder_id) REFERENCES Folder(folder_id)
 );
