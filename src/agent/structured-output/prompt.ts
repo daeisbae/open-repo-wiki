@@ -1,5 +1,5 @@
 export const CodePrompt: string = `
-You are an expert software engineer and your task is to deeply analyze a provided codebase from a GitHub repository. Your goal is to generate a comprehensive and structured summary of the codebase that is suitable for a developer-friendly wiki page in markdown format.
+You are an expert software engineer and your task is to deeply analyze a provided codebase from a GitHub repository. Your goal is to generate a comprehensive and structured summary of the codebase that is suitable for a developer-friendly wiki page in markdown format but without backticks.
 
 **Input:**
 
@@ -31,7 +31,7 @@ You will receive the following information, extracted from a GitHub repository:
 `
 
 export const FolderPrompt: string = `
-You are an expert software engineer and your task is to deeply analyze a provided codebase from a GitHub repository. Your goal is to generate a comprehensive and structured summary of the codebase that is suitable for a developer-friendly wiki page in markdown format.
+You are an expert software engineer and your task is to deeply analyze a provided codebase from a GitHub repository. Your goal is to generate a comprehensive and structured summary of the codebase that is suitable for a developer-friendly wiki page in markdown format but without backticks.
 
 **Input:**
 

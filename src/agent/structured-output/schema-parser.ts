@@ -1,6 +1,5 @@
-import { StructuredOutputParser } from '@/langchain/output_parsers'
+import { StructuredOutputParser } from 'langchain/output_parsers'
 import { ZodSchema } from 'zod'
-
 
 /**
  * Parser class that converts LLM outputs into structured objects
@@ -12,11 +11,11 @@ export class SchemaParser {
 
     constructor(schema: ZodSchema) {
         this.outputParser = new StructuredOutputParser(schema)
-        this.formatInstructions = this.outputParser.getFormalInstructions()
+        this.formatInstructions = this.outputParser.formalInstructions
     }
 
     get formalInstructions() {
-        return this.formatInstructions;
+        return this.formatInstructions
     }
 
     async parse(output: string): Promise<Object> {

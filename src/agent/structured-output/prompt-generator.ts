@@ -1,4 +1,4 @@
-import { PromptTemplate } from '@langchain/prompts'
+import { PromptTemplate } from '@langchain/core/prompts';
 
 /**
  * Configuration interface for PromptTemplate
@@ -6,16 +6,32 @@ import { PromptTemplate } from '@langchain/prompts'
  */
 export interface PromptTemplateConfig {
     template: string
-    inputVariables: string[]
-    partialVariables: Instruction
 }
 
 /**
  * Interface for formatting instructions
- * @interface Instruction
+ * @interface PromptTemplateVariables
  */
-export interface Instruction {
+export interface BasePromptTemplateVariables {
+    requirements: string
     formatInstructions: string
+}
+
+/**
+ * Interface for formatting instructions
+ * @interface PromptTemplateVariables
+ */
+export interface FilePromptTemplateVariables extends BasePromptTemplateVariables {
+    code: string
+}
+
+
+/**
+ * Interface for formatting instructions
+ * @interface PromptTemplateVariables
+ */
+export interface FolderPromptTemplateVariables extends BasePromptTemplateVariables {
+    ai_summaries: string
 }
 
 /**
@@ -32,7 +48,7 @@ export enum PromptType {
  * @class PromptGenerator
  */
 export class PromptGenerator {
-    protected template: PromptTemplate
+    protected prompt: PromptTemplate
     protected promptType: PromptType
 
     /**
@@ -55,9 +71,7 @@ export class PromptGenerator {
      * @param {PromptType} promptType - Type of prompt to generate
      */
     constructor(config: PromptTemplateConfig, promptType: PromptType) {
-        this.template = new PromptTemplate({
-            ...config,
-        })
+        this.prompt = PromptTemplate.fromTemplate(config.template)
         this.promptType = promptType
     }
 
@@ -68,7 +82,7 @@ export class PromptGenerator {
      * @returns {Promise<string>} Formatted prompt string
      * @throws {Error} If prompt type is invalid or required input is missing
      */
-    async generate(code?: string, ai_summaries?: string[]): Promise<string> {
+    async generate(variables: BasePromptTemplateVariables , code?: string, ai_summaries?: string[]): Promise<string> {
         const promptMap: Record<PromptType, string> = {
             [PromptType.Folder]: ai_summaries?.join('\n') ?? '',
             [PromptType.File]: code ?? '',
@@ -81,6 +95,6 @@ export class PromptGenerator {
             )
         }
 
-        return this.template.format( this.promptType === PromptType.File ? { code: userPrompt } : { ai_summaries: userPrompt }) 
+        return this.prompt.format( this.promptType === PromptType.File ? { ...variables, code: userPrompt } : { ...variables, ai_summaries: userPrompt }) 
     }
 }
