@@ -1,4 +1,4 @@
-import LLMConfig from '@/llm/llmconfig'
+import LLMConfig from '@/llm/llm-config'
 
 /**
  * Represents a single message in the conversation history.
