@@ -4,6 +4,7 @@ import { getSchema, SchemaType } from '@/agent/structured-output/schema-factory'
 import {
     PromptGenerator,
     PromptType,
+    RepoInfo,
 } from '@/agent/structured-output/prompt-generator'
 import { CodePrompt, FolderPrompt } from '@/agent/structured-output/prompt'
 
@@ -25,12 +26,12 @@ abstract class BaseProcessor {
 
     /**
      * Process the given prompt using LLM and parse the response into JSON format
-     * @param prompt - The prompt to process
+     * @param {any} prompt - The prompt to process
+     * @param {RepoInfo | null} repoInfo - Information about the repository
      * @returns Parsed object from the LLM response
      */
-    protected async process(prompt: any): Promise<object> {
+    protected async process(prompt: any, repoInfo: RepoInfo | null): Promise<object> {
         const response = await this.llm.run(prompt, [])
-        console.log(response)
         return await this.schemaParser.parse(response)
     }
 }
@@ -54,7 +55,11 @@ export class CodeProcessor extends BaseProcessor {
         this.promptGenerator = new PromptGenerator(
             {
                 template:
-                    'The following instruction is given:\n{requirements}\n{formatInstructions}\nBelow is the code for your task: {code}',
+                    'The following instruction is given:\n{requirements}\n{formatInstructions}\n' +
+                    'The given repository owner is {repoOwner} with repository name of {repoName}\n' +
+                    'The commit SHA referenced is {commitSha}\n' +
+                    'The path of the file is {path}\n' +
+                    'Below is the code for your task: {code}',
             },
             PromptType.File
         )
@@ -62,12 +67,20 @@ export class CodeProcessor extends BaseProcessor {
 
     /**
      * Process the given code string
-     * @param code - Source code to process
+     * @param {string }code - Source code to process
+     * @param {RepoInfo} repoInfo - Information about the repository
      * @returns Processed and parsed JSON object defined in schema factory
      */
-    async process(code: string): Promise<object> {
-        const prompt = await this.promptGenerator.generate({requirements: CodePrompt, formatInstructions: this.schemaParser.formalInstructions}, code)
-        return await super.process(prompt)
+    async process(code: string, repoInfo: RepoInfo): Promise<object> {
+        const prompt = await this.promptGenerator.generate(
+            {
+                requirements: CodePrompt,
+                formatInstructions: this.schemaParser.formalInstructions,
+                ...repoInfo,
+            },
+            code
+        )
+        return await super.process(prompt, null)
     }
 }
 
@@ -82,7 +95,7 @@ export class CodeProcessor extends BaseProcessor {
 export class FolderProcessor extends BaseProcessor {
     /**
      * Creates a new FolderProcessor instance with folder schema type
-     * @param llm - The LLM provider instance
+     * @param {LLMProvider} llm - The LLM provider instance
      */
     constructor(llm: LLMProvider) {
         super(llm)
@@ -90,7 +103,11 @@ export class FolderProcessor extends BaseProcessor {
         this.promptGenerator = new PromptGenerator(
             {
                 template:
-                    'The following instruction is given:\n{requirements}\n{formatInstructions}\nBelow are the summaries for the codebase:\n{ai_summaries}',
+                    'The following instruction is given:\n{requirements}\n{formatInstructions}\n' +
+                    'The given repository owner is {repoOwner} with repository name of {repoName}\n' +
+                    'The commit SHA referenced is {commitSha}\n' +
+                    'The path of the folder is {path}\n' +
+                    'Below are the summaries for the codebase:\n{ai_summaries}',
             },
             PromptType.Folder
         )
@@ -98,11 +115,20 @@ export class FolderProcessor extends BaseProcessor {
 
     /**
      * Process the given code string
-     * @param code - Source code to process
+     * @param {Array<string> folder - summaries of files by LLMs
+     * @param {RepoInfo} repoInfo - Information about the repository
      * @returns Processed and parsed JSON object defined in schema factory
      */
-    async process(folder: string[]): Promise<object> {
-        const prompt = await this.promptGenerator.generate({requirements: FolderPrompt, formatInstructions: this.schemaParser.formalInstructions}, undefined, folder)
-        return await super.process(prompt)
+    async process(folder: string[], repoInfo: RepoInfo): Promise<object> {
+        const prompt = await this.promptGenerator.generate(
+            {
+                requirements: FolderPrompt,
+                formatInstructions: this.schemaParser.formalInstructions,
+                ...repoInfo
+            },
+            undefined,
+            folder
+        )
+        return await super.process(prompt, null)
     }
 }

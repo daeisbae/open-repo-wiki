@@ -30,7 +30,7 @@ export default class CodeSplitter {
      * @returns {Language | null} - The corresponding Language enum or null (if not supported).
      */
     private getLanguageFromExtension(extension: string): SupportedTextSplitterLanguage | null {
-        let extensionToLanguageMap = {
+        let extensionToLanguageMap: { [key: string]: Language } = {
             'py': Language.PYTHON,
             'js': Language.JS,
             'jsx': Language.JS,
@@ -54,9 +54,9 @@ export default class CodeSplitter {
      * Splits the provided code into chunks based on the file extension.
      * @param {string} fileExtension - The file extension indicating the programming language.
      * @param {string} code - The code content to be split.
-     * @returns {Promise<Array<Document>> | null}  - A promise that resolves to an array of document chunks.
+     * @returns {Promise<string | null>}  - A promise that resolves to an array of document chunks.
      */
-    async splitCode(fileExtension: string, code: string): Promise<Array<any> | null> {
+    async splitCode(fileExtension: string, code: string): Promise<string | null> {
         const language : SupportedTextSplitterLanguage | null = this.getLanguageFromExtension(fileExtension);
         if (!language) {
             return null;
@@ -67,6 +67,11 @@ export default class CodeSplitter {
             chunkOverlap: this.chunkOverlap,
         });
 
-        return splitter.createDocuments([code]);
+        const doc = await splitter.createDocuments([code]);
+        let docWithMetadata = '';
+        for(let i = 0; i < doc.length; i++) {
+            docWithMetadata += `// Line ${doc[i].metadata.loc.lines.from} - ${doc[i].metadata.loc.lines.to}\n${doc[i].pageContent}\n\n`;
+        }
+        return docWithMetadata;
     }
 }

@@ -1,4 +1,4 @@
-import { PromptTemplate } from '@langchain/core/prompts';
+import { PromptTemplate } from '@langchain/core/prompts'
 
 /**
  * Configuration interface for PromptTemplate
@@ -12,25 +12,37 @@ export interface PromptTemplateConfig {
  * Interface for formatting instructions
  * @interface PromptTemplateVariables
  */
-export interface BasePromptTemplateVariables {
+export interface BasePromptTemplateVariables extends RepoInfo {
     requirements: string
     formatInstructions: string
 }
 
 /**
- * Interface for formatting instructions
- * @interface PromptTemplateVariables
+ * Interface for basic repo module information
+ * @interface ModuleInfo
  */
-export interface FilePromptTemplateVariables extends BasePromptTemplateVariables {
-    code: string
+export interface RepoInfo {
+    repoOwner: string
+    repoName: string
+    commitSha: string
+    path: string
 }
-
 
 /**
  * Interface for formatting instructions
  * @interface PromptTemplateVariables
  */
-export interface FolderPromptTemplateVariables extends BasePromptTemplateVariables {
+export interface FilePromptTemplateVariables
+    extends BasePromptTemplateVariables {
+    code: string
+}
+
+/**
+ * Interface for formatting instructions
+ * @interface PromptTemplateVariables
+ */
+export interface FolderPromptTemplateVariables
+    extends BasePromptTemplateVariables {
     ai_summaries: string
 }
 
@@ -82,7 +94,11 @@ export class PromptGenerator {
      * @returns {Promise<string>} Formatted prompt string
      * @throws {Error} If prompt type is invalid or required input is missing
      */
-    async generate(variables: BasePromptTemplateVariables , code?: string, ai_summaries?: string[]): Promise<string> {
+    async generate(
+        variables: BasePromptTemplateVariables,
+        code?: string,
+        ai_summaries?: string[]
+    ): Promise<string> {
         const promptMap: Record<PromptType, string> = {
             [PromptType.Folder]: ai_summaries?.join('\n') ?? '',
             [PromptType.File]: code ?? '',
@@ -95,6 +111,10 @@ export class PromptGenerator {
             )
         }
 
-        return this.prompt.format( this.promptType === PromptType.File ? { ...variables, code: userPrompt } : { ...variables, ai_summaries: userPrompt }) 
+        return this.prompt.format(
+            this.promptType === PromptType.File
+                ? { ...variables, code: userPrompt }
+                : { ...variables, ai_summaries: userPrompt }
+        )
     }
 }
