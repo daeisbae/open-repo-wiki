@@ -13,7 +13,7 @@ export interface RepositoryData {
 }
 
 export class Repository {
-    async select(owner: string, repo: string): Promise<RepositoryData> {
+    async select(owner: string, repo: string): Promise<RepositoryData | null> {
         const queryRepo =
             'SELECT * FROM Repository WHERE owner = $1 AND repo = $2'
         const queryTopics =
@@ -21,6 +21,9 @@ export class Repository {
 
         const repoResult = (await dbConn.query(queryRepo, [owner, repo]))
             .rows[0]
+        if (!repoResult) {
+            return null
+        }
         const topicsResult = await dbConn.query(queryTopics, [repoResult.url])
 
         return {
