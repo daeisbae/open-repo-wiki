@@ -49,36 +49,10 @@ File Schema Example Output:
                 summary: z
                     .string()
                     .describe(
-                        'Summary of the file, its main purpose, and its role in the project. Include Markdown links to important code blocks within this file using the format `[{Description of Code Block}]({Full github url of the file including the start line with optional ending line}#L{startLine}-L{endLine})` where applicable.'
-                    ),
-                relevantCodeBlocks: z
-                    .array(
-                        z.object({
-                            name: z
-                                .string()
-                                .describe(
-                                    'Name or identifier of the code block (e.g., function name, class name, key variable).'
-                                ),
-                            description: z
-                                .string()
-                                .describe(
-                                    'Description of the code block and its significance within the file.'
-                                ),
-                            startLine: z
-                                .number()
-                                .describe(
-                                    'Starting line number of the code block.'
-                                ),
-                            endLine: z
-                                .number()
-                                .describe(
-                                    'Ending line number of the code block.'
-                                ),
-                        })
-                    )
-                    .optional()
-                    .describe(
-                        'List of important code blocks (functions, classes, key sections) within the file, with line numbers.'
+                        'Summary of the file talking about its main purpose, and its role in the project.\n'
+                        + 'Include Markdown links to important code blocks within this file using the format\n`'
+                        + '[{Description of Code Block}]({Full github url of the file including the start line with optional ending line}#L{startLine}-L{endLine})` where applicable.\n'
+                        + 'Also you should not return more than 2-3 paragraphs of summary.'
                     ),
             })
 
