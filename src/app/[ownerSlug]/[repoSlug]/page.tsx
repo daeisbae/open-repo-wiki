@@ -1,7 +1,7 @@
 import { JSX, Suspense } from 'react'
 import { RepoCard } from '@/components/RepoCard'
 import Loading from '@/app/[ownerSlug]/[repoSlug]/loading'
-import { FetchRepoService, FullRepository } from '@/db/get-db'
+import { FetchRepoService, FullRepository } from '@/service/get-db'
 import { MarkdownContent } from '@/components/MarkdownContent'
 import { notFound } from 'next/navigation'
 

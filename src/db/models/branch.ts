@@ -27,10 +27,17 @@ export class Branch {
         const query = `
             INSERT INTO Branch (last_commit_sha, name, repository_url, commit_at)
             VALUES ($1, $2, $3, $4)
+            ON CONFLICT DO NOTHING
             RETURNING *;
         `
         const values = [sha, name, repository_url, commit_at]
         const result = await dbConn.query(query, values)
+        if(result.rowCount === 0) {
+            const getBranchQuery = 'SELECT * FROM Branch WHERE repository_url = $1 AND last_commit_sha = $2'
+            const getBranchValues = [repository_url, sha]
+            const getBranchResult = await dbConn.query(getBranchQuery, getBranchValues)
+            return getBranchResult.rows[0]
+        }
         return result.rows[0]
     }
 

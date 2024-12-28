@@ -41,11 +41,13 @@ export class Repository {
         defaultBranch: string,
         topics: string[],
         stars: number,
-        forks: number
-    ): Promise<void> {
+        forks: number,
+    ): Promise<RepositoryData | null> {
         const repoQuery = `
                 INSERT INTO Repository (url, owner, repo, language, descriptions, default_branch, stars, forks)
-                VALUES ($1, $2, $3, $4, $5, $6, $7, $8);
+                VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+                ON CONFLICT (url) DO NOTHING
+                RETURNING *;
             `
         const repoValues = [
             url,
@@ -57,20 +59,29 @@ export class Repository {
             stars,
             forks,
         ]
-        await dbConn.query(repoQuery, repoValues)
+        const result = await dbConn.query(repoQuery, repoValues)
 
         const topicQuery = `
-                IF NOT EXISTS (SELECT * FROM Topics WHERE topic_name = $1)
-                BEGIN
-                    INSERT INTO Topics (topic_name)
-                    VALUES ($1);
-                END;
-                INSERT INTO RepositoryTopics (topic_name, repository_url)
-                VALUES ($1, $2);
+                INSERT INTO Topics (topic_name)
+                VALUES ($1)
+                ON CONFLICT (topic_name) DO NOTHING;
             `
+        const topicRepoQuery = `
+                INSERT INTO RepositoryTopics (topic_name, repository_url)
+                VALUES ($1, $2)
+                ON CONFLICT (topic_name, repository_url) DO NOTHING;
+            `
+
         for (const topic of topics) {
-            const topicValues = [topic, url]
+            const topicValues = [topic]
             await dbConn.query(topicQuery, topicValues)
         }
+
+        for (const topic of topics) {
+            const topicRepoValues = [topic, url]
+            await dbConn.query(topicRepoQuery, topicRepoValues)
+        }
+
+        return result.rows[0];
     }
 }

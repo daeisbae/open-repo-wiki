@@ -3,7 +3,7 @@ import dbConn from '@/db/utils/connector'
 export interface FileData {
     file_id: number
     name: string
-    language: string
+    language: string | null
     folder_id: number
     content: string
     ai_summary: string | null
@@ -18,17 +18,26 @@ export class File {
 
     async insert(
         name: string,
-        language: string,
         folderId: number,
         content: string
     ): Promise<FileData> {
         const query = `
-      INSERT INTO File (name, language, folder_id, content)
-      VALUES ($1, $2, $3, $4)
+      INSERT INTO File (name, folder_id, content)
+      VALUES ($1, $2, $3)
+      ON CONFLICT DO NOTHING
       RETURNING *;
     `
-        const values = [name, language, folderId, content]
+        const values = [name, folderId, content]
         const result = await dbConn.query<FileData>(query, values)
+
+        if (result.rowCount === 0) {
+            const getFileQuery =
+                'SELECT * FROM File WHERE name = $1 AND folder_id = $2'
+            const getFileValues = [name, folderId]
+            const getFileResult = await dbConn.query(getFileQuery, getFileValues)
+            return getFileResult.rows[0]
+        }
+
         return result.rows[0]
     }
 

@@ -1,4 +1,5 @@
 import axios from "axios";
+import { GithubAuthConfig } from "@/github/config";
 
 interface RepoResponse {
   owner: {
@@ -12,6 +13,7 @@ interface RepoResponse {
   stargazers_count: number;
   forks_count: number;
   default_branch: string;
+  pushed_at: Date;
 }
 
 interface TreeResponse {
@@ -37,9 +39,10 @@ interface RepoDetails {
   forks: number;
   defaultBranch: string;
   sha: string;
+  commitAt: Date;
 }
 
-interface RepoTreeResult {
+export interface RepoTreeResult {
   path: string;
   files: string[];
   subdirectories: RepoTreeResult[];
@@ -58,11 +61,11 @@ export async function fetchGithubRepoDetails(
   const repoUrl = `https://api.github.com/repos/${owner}/${repo}`;
 
   try {
-    const repoResp = await axios.get<RepoResponse>(repoUrl);
+    const repoResp = await axios.get<RepoResponse>(repoUrl, GithubAuthConfig);
     const repoData = repoResp.data;
 
     const treeUrl = `https://api.github.com/repos/${owner}/${repo}/git/trees/${repoData.default_branch}`;
-    const treeResp = await axios.get<TreeResponse>(treeUrl);
+    const treeResp = await axios.get<TreeResponse>(treeUrl, GithubAuthConfig);
     const treeData = treeResp.data;
 
     return {
@@ -75,7 +78,8 @@ export async function fetchGithubRepoDetails(
       stars: repoData.stargazers_count,
       forks: repoData.forks_count,
       defaultBranch: repoData.default_branch,
-      sha: treeData.sha
+      sha: treeData.sha,
+      commitAt: repoData.pushed_at
     };
   } catch (error) {
     if (axios.isAxiosError(error)) {
@@ -102,7 +106,7 @@ export async function fetchGithubRepoTree(
   const contentsUrl = `https://api.github.com/repos/${owner}/${repo}/contents/${path}?ref=${sha}`;
 
   try {
-    const { data } = await axios.get<TreeItem[]>(contentsUrl);
+    const { data } = await axios.get<TreeItem[]>(contentsUrl, GithubAuthConfig);
     const result: RepoTreeResult = {
       path,
       files: [],
@@ -144,7 +148,7 @@ export async function fetchGithubRepoFile(
   const codeUrl = `https://raw.githubusercontent.com/${owner}/${repo}/${sha}/${path}`;
 
   try {
-    const response = await axios.get<string>(codeUrl);
+    const response = await axios.get<string>(codeUrl, GithubAuthConfig);
     return response.data;
   } catch (error) {
     if (axios.isAxiosError(error)) {

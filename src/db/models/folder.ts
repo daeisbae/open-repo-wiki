@@ -4,7 +4,7 @@ export interface FolderData {
     folder_id: number
     name: string
     path: string
-    parent_folder_id: number
+    parent_folder_id: number | null
     ai_summary: string | null
     branch_id: number
 }
@@ -26,11 +26,13 @@ export class Folder {
                 ? `
             INSERT INTO Folder (name, path, branch_id)
             VALUES ($1, $2, $3)
+            ON CONFLICT DO NOTHING
             RETURNING *;
         `
                 : `
             INSERT INTO Folder (name, path, branch_id, parent_folder_id)
             VALUES ($1, $2, $3, $4)
+            ON CONFLICT DO NOTHING
             RETURNING *;
         `
         const values =
@@ -38,6 +40,20 @@ export class Folder {
                 ? [name, path, branch_id]
                 : [name, path, branch_id, parent_folder_id]
         const result = await dbConn.query(query, values)
+
+        if (result.rowCount === 0) {
+            const getFolderQuery =
+                parent_folder_id === null
+                    ? 'SELECT * FROM Folder WHERE path = $1 AND branch_id = $2'
+                    : 'SELECT * FROM Folder WHERE path = $1 AND branch_id = $2 AND parent_folder_id = $3'
+            const getFolderValues =
+                parent_folder_id === null
+                    ? [name, path, branch_id]
+                    : [name, path, branch_id, parent_folder_id]
+            const getFolderResult = await dbConn.query(getFolderQuery, getFolderValues)
+            return getFolderResult.rows[0]
+        }
+
         return result.rows[0]
     }
 
