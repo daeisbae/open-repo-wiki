@@ -39,7 +39,7 @@ CREATE TABLE IF NOT EXISTS Branch (
 CREATE TABLE IF NOT EXISTS Folder (
     folder_id           SERIAL PRIMARY KEY,
     name                VARCHAR(30),
-    path                VARCHAR(100) NOT NULL,
+    path                VARCHAR(120) NOT NULL,
     parent_folder_id    INTEGER,
     ai_summary          TEXT,
     branch_id           INTEGER NOT NULL,
@@ -50,7 +50,7 @@ CREATE TABLE IF NOT EXISTS Folder (
 
 CREATE TABLE IF NOT EXISTS File (
     file_id         SERIAL PRIMARY KEY,
-    name            VARCHAR(30) NOT NULL,
+    name            VARCHAR(150) NOT NULL,
     language        VARCHAR(20),
     folder_id       INTEGER NOT NULL,
     content         TEXT,
