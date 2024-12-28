@@ -1,10 +1,10 @@
 import { whitelistedFile } from '@/github/filterfile'
 
-describe('filterFile', () => {
+describe('whitelistedFile', () => {
     it('should allow files that match a simple pattern', () => {
         const files = ['index.js', 'README.md', 'node_modules/library.js']
         const regexFilter = ['node_modules']
-        const result = filterFile(files, regexFilter)
+        const result = whitelistedFile(files, regexFilter)
         expect(result).toEqual(['node_modules/library.js'])
     })
 
@@ -24,7 +24,10 @@ describe('filterFile', () => {
         ]
         const regexFilter = ['node_modules', '\\.github']
         const result = whitelistedFile(files, regexFilter)
-        expect(result).toEqual(['index.js', 'README.md'])
+        expect(result).toEqual([
+            '.github/config.yml',
+            'node_modules/library.js',
+        ])
     })
 
     it('should remove all files if regex patterns do not match any file', () => {

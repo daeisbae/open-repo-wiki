@@ -22,7 +22,7 @@ export class InsertRepoService {
         owner: string,
         repo: string,
     ): Promise<RepositoryData | null> {
-        const repoDetails = await fetchGithubRepoDetails(owner, repo)
+        const repoDetails = await fetchGithubRepoDetails(owner, repo, true)
         const repositoryData = await this.repository.insert(repoDetails.url, repoDetails.repoOwner, repoDetails.repoName, repoDetails.language, repoDetails.description, repoDetails.defaultBranch, repoDetails.topics, repoDetails.stars, repoDetails.forks)
 
         if(!repositoryData) {
@@ -35,7 +35,7 @@ export class InsertRepoService {
 
         const branchId = branchCommit.branch_id
 
-        const tree = await fetchGithubRepoTree(owner, repo, repoDetails.sha)
+        const tree = await fetchGithubRepoTree(owner, repo, repoDetails.sha, '', true)
         
         await this.recursiveInsertFolder(owner, repo, sha, tree, branchId, null)
 
@@ -61,7 +61,7 @@ export class InsertRepoService {
 
         for(const file of allowedFiles) {
             console.log(`Inserting file ${file}`)
-            await this.insertFile(file, folderData.folder_id, await fetchGithubRepoFile(owner, repo, sha, file))
+            await this.insertFile(file, folderData.folder_id, await fetchGithubRepoFile(owner, repo, sha, file, true))
         }
         for(const subfolder of allowedFolders) {
             console.log(`Traversing and Inserting folder ${subfolder.path}`)
