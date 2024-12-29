@@ -7,6 +7,7 @@ import {
     RepoInfo,
 } from '@/agent/structured-output/prompt-generator'
 import { CodePrompt, FolderPrompt } from '@/agent/structured-output/prompt'
+import CodeSplitter from '@/agent/document-splitter/code-splitter'
 
 /**
  * Abstract base class for processing prompts using LLM
@@ -26,14 +27,20 @@ abstract class BaseProcessor {
 
     /**
      * Process the given prompt using LLM and parse the response into JSON format
-     * @param {any} prompt - The prompt to process
-     * @param {RepoInfo | null} repoInfo - Information about the repository
+     * @param {string} prompt - The prompt to process
      * @returns Parsed object from the LLM response
      */
-    protected async process(prompt: any, repoInfo: RepoInfo | null): Promise<object> {
+    protected async process(prompt: string): Promise<any> {
         const response = await this.llm.run(prompt, [])
         return await this.schemaParser.parse(response)
     }
+}
+
+interface CodeSummaryOutput {
+    name: string
+    path: string
+    summary: string
+    usage: string
 }
 
 /**
@@ -45,12 +52,15 @@ abstract class BaseProcessor {
  * const result = await codeProcessor.process(sourceCode)
  */
 export class CodeProcessor extends BaseProcessor {
+    private codeSplitter: CodeSplitter
+
     /**
      * Creates a new CodeProcessor instance with file schema type
      * @param llm - The LLM provider instance
      */
     constructor(llm: LLMProvider) {
         super(llm)
+        this.codeSplitter = new CodeSplitter(200, 25)
         this.schemaParser = new SchemaParser(getSchema(SchemaType.FILE))
         this.promptGenerator = new PromptGenerator(
             {
@@ -67,21 +77,41 @@ export class CodeProcessor extends BaseProcessor {
 
     /**
      * Process the given code string
-     * @param {string }code - Source code to process
+     * @param {string} path - Path of the file
+     * @param {string} code - Source code to process
      * @param {RepoInfo} repoInfo - Information about the repository
      * @returns Processed and parsed JSON object defined in schema factory
      */
-    async process(code: string, repoInfo: RepoInfo): Promise<object> {
+    async generate(code: string, repoInfo: RepoInfo): Promise<CodeSummaryOutput | null> {
+        const extension = repoInfo.path.split('.').pop()
+        if (!extension) {
+            console.warn('No extension found in the file path')
+            return null
+        }
+        const splittedDoc = await this.codeSplitter.splitCode(extension, code)
+        if (!splittedDoc) {
+            console.warn('Code splitting failed')
+            return null
+        }
+
         const prompt = await this.promptGenerator.generate(
             {
                 requirements: CodePrompt,
                 formatInstructions: this.schemaParser.formalInstructions,
                 ...repoInfo,
             },
-            code
+            splittedDoc
         )
-        return await super.process(prompt, null)
+
+        return await super.process(prompt)
     }
+}
+
+interface FolderSummaryOutput {
+    name: string
+    usage: string
+    path: string
+    summary: string
 }
 
 /**
@@ -119,7 +149,7 @@ export class FolderProcessor extends BaseProcessor {
      * @param {RepoInfo} repoInfo - Information about the repository
      * @returns Processed and parsed JSON object defined in schema factory
      */
-    async process(folder: string[], repoInfo: RepoInfo): Promise<object> {
+    async generate(folder: string[], repoInfo: RepoInfo): Promise<FolderSummaryOutput | null> {
         const prompt = await this.promptGenerator.generate(
             {
                 requirements: FolderPrompt,
@@ -129,6 +159,6 @@ export class FolderProcessor extends BaseProcessor {
             undefined,
             folder
         )
-        return await super.process(prompt, null)
+        return await super.process(prompt)
     }
 }

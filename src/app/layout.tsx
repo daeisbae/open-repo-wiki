@@ -1,3 +1,4 @@
+import GithubLink from '@/components/GithubLink'
 import './globals.css'
 import Navbar from '@/components/NavBar'
 
@@ -15,7 +16,8 @@ export default function RootLayout({ children } : RootLayoutProps) {
         <html lang="en">
             <body className="bg-white">
                 <Navbar />
-                <main className="max-w-7xl mx-auto p-6">{children}</main>
+                <main className="min-h-[calc(100vh-4rem)] flex items-center justify-center max-w-7xl mx-auto p-6">{children}</main>
+                <GithubLink />
             </body>
         </html>
     )

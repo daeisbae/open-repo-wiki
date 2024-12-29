@@ -4,18 +4,36 @@ import { Folder, FolderData } from '@/db/models/folder'
 import { File, FileData } from '@/db/models/file'
 import { fetchGithubRepoFile, fetchGithubRepoDetails, fetchGithubRepoTree, RepoTreeResult  } from '@/github/fetchrepo'
 import { whitelistedFilter, whitelistedFile, blacklistedFilter, blacklistedFolder }  from '@/github/filterfile'
+import { FolderProcessor, CodeProcessor } from '@/agent/structured-output/index'
+import { LLMProvider } from '@/llm/llm-provider'
+
+interface RepoFileInfo {
+    repoOwner: string
+    repoName: string
+    commitSha: string
+}
+
+interface FolderResult {
+    path: string
+    summary: string
+}
 
 export class InsertRepoService {
     private repository: Repository
     private branch: Branch
     private folder: Folder
     private file: File
+    private codeProcessor: CodeProcessor
+    private folderProcessor: FolderProcessor
+    private repoFileInfo: RepoFileInfo | undefined
 
-    constructor() {
+    constructor(llm: LLMProvider) {
         this.repository = new Repository()
         this.branch = new Branch()
         this.folder = new Folder()
         this.file = new File()
+        this.codeProcessor = new CodeProcessor(llm)
+        this.folderProcessor = new FolderProcessor(llm)
     }
 
     async insertRepository(
@@ -35,6 +53,12 @@ export class InsertRepoService {
 
         const branchId = branchCommit.branch_id
 
+        this.repoFileInfo = {
+            repoOwner: owner,
+            repoName: repo,
+            commitSha: sha
+        }
+
         const tree = await fetchGithubRepoTree(owner, repo, repoDetails.sha, '', true)
         
         await this.recursiveInsertFolder(owner, repo, sha, tree, branchId, null)
@@ -49,24 +73,37 @@ export class InsertRepoService {
         tree: RepoTreeResult,
         branchId: number,
         parentFolderId: number | null
-    ): Promise<void> {
+    ): Promise<FolderResult | null> {
         const allowedFiles = whitelistedFile(tree.files, whitelistedFilter);
 
         const allowedFolders = blacklistedFolder(tree.subdirectories, blacklistedFilter);
 
         if(!allowedFiles.length && !allowedFolders.length) {
-            return
+            return null
         }
         const folderData = await this.insertFolder(tree.path.split('/').pop() || '', tree.path, branchId, parentFolderId)
+        const summaries: string[] = []
 
         for(const file of allowedFiles) {
             console.log(`Inserting file ${file}`)
-            await this.insertFile(file, folderData.folder_id, await fetchGithubRepoFile(owner, repo, sha, file, true))
+            const { name, ai_summary } = await this.insertFile(file, folderData.folder_id, await fetchGithubRepoFile(owner, repo, sha, file, true))
+            const fileSummary = `Summary of file ${name}:\n${ai_summary}\n\n`
+            summaries.push(fileSummary)
         }
         for(const subfolder of allowedFolders) {
             console.log(`Traversing and Inserting folder ${subfolder.path}`)
-            await this.recursiveInsertFolder(owner, repo, sha, subfolder, branchId, folderData.folder_id)
+            const childFolder = await this.recursiveInsertFolder(owner, repo, sha, subfolder, branchId, folderData.folder_id)
+            const folderSummary = `Summary of folder ${subfolder.path}:\n${childFolder?.summary}\n\n`
+            summaries.push(folderSummary)
         }
+
+        const aiSummary = await this.folderProcessor.generate(summaries, {...this.repoFileInfo!, path: folderData.path})
+        if(!aiSummary) {
+            console.warn(`Failed to generate AI summary for folder ${folderData.path}`)
+            return null
+        }
+        const {path, ai_summary} = await this.folder.update(aiSummary.summary, aiSummary.usage, folderData.folder_id)
+        return {path, summary: ai_summary!}
     }
 
     private async insertBranch(
@@ -94,7 +131,17 @@ export class InsertRepoService {
         folder_id: number,
         content: string
     ): Promise<FileData> {
-        const fileData = await this.file.insert(name, folder_id, content)
-        return fileData
+        const createdFile = await this.file.insert(name, folder_id, content)
+        if(!this.repoFileInfo) {
+            console.warn(`RepoFileInfo is not set`)
+            throw new Error('Repository file information is not initialized')
+        }
+        const aiSummary = await this.codeProcessor.generate(content, {...this.repoFileInfo!, path: name})
+        if(!aiSummary) {
+            console.warn(`Failed to generate AI summary for file ${name}`)
+            return createdFile
+        }
+        const updatedFile = await this.file.update(aiSummary.summary, aiSummary.usage, createdFile.file_id)
+        return updatedFile
     }
 }

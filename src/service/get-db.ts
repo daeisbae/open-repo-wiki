@@ -51,12 +51,15 @@ export class FetchRepoService {
             (f) => f.parent_folder_id === parentFolderId
         )
 
+        if(currentLevel.length === 0) return []
+
         const foldersWithChildren: FullFolder[] = []
         for (const folder of currentLevel) {
             const subfolders = await this.getFoldersRecursively(
                 branchId,
                 folder.folder_id
             )
+                
             const files = await this.file.select(folder.folder_id)
             foldersWithChildren.push({
                 ...folder,
@@ -64,6 +67,7 @@ export class FetchRepoService {
                 subfolders,
             })
         }
+
         return foldersWithChildren
     }
 }
