@@ -12,33 +12,52 @@ body {
   }
 }
 
+:root {
+  --heading-top-padding: 20px;
+}
+
+h1 + hr {
+  padding-bottom: 20px;
+}
+
 h1 {
-  font-size: 48px;
+  font-size: 32px;
   font-weight: bold;
+  padding-bottom: var(--h1-bottom-padding);
 }
 
 h2 {
-  font-size: 40px;
+  padding-top: var(--heading-top-padding);
+  font-size: 28px;
   font-weight: bold;
 }
 
 h3 {
-  font-size: 32px;
+  padding-top: var(--heading-top-padding);
+  font-size: 26px;
   font-weight: bold;
 }
 
 h4 {
+  padding-top: var(--heading-top-padding);
   font-size: 24px;
   font-weight: bold;
 }
 
 h5 {
+  padding-top: var(--heading-top-padding);
+  font-size: 22px;
+  font-weight: bold;
+}
+
+h6 {
+  padding-top: var(--heading-top-padding);
   font-size: 20px;
   font-weight: bold;
 }
 
 ul > li {
-  padding: 20px 0px;
+  padding: 10px 0px;
 }
 
 a > code {

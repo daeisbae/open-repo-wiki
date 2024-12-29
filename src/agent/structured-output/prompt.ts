@@ -21,7 +21,7 @@ You will receive the following information, extracted from a GitHub repository:
     *   Explain its role in the overall system.
     *   Identify its dependencies on other modules/components.
     *   Highlight any important classes, functions, or data structures.
-    *   If you need to refer to a specific code, mention the path to that file by using the following markdown link format: [\`Description of Code Block\`](Full github url of the file including the start line with optional ending line#L{startLine}-L{endLine}). This is in the form of "https://github.com/{owner}/{repo}/blob/{commitSha}/{path}#L{lineStart}-L{lineEnd}".
+    *   Link all the code blocks (Class,Function,Enum,Exception) that are referenced using the following markdown link format: [\`Description of Code Block\`](Full github url of the file including the start line with optional ending line#L{startLine}-L{endLine}). This is in the form of "https://github.com/{owner}/{repo}/blob/{commitSha}/{path}#L{lineStart}-L{lineEnd}".
 2. **Code-Level Insights:**
     *   Analyze the code files to understand the implementation details.
     *   Identify core algorithms, data structures, and design patterns used.
@@ -56,7 +56,7 @@ You will receive the following information, summarized from the expert software 
     *   Explain its role in the overall system.
     *   Identify its dependencies on other modules/components/folder.
     *   Highlight any important classes, functions, or data structures in it's sub-files and sub-folders.
-    *   If you need to refer to a specific code, mention the path to that file by using the following markdown link format: [\`Description of Code Block\`]({Full github url of the file including the start line with optional ending line#L{startLine}-L{endLine}). This is in the form of "https://github.com/{owner}/{repo}/blob/{commitSha}/{path}#L{lineStart}-L{lineEnd}".
+    *   Link all the code blocks that are referenced using the following markdown link format: [\`Description of Code Block\`](Full github url of the file including the start line with optional ending line#L{startLine}-L{endLine}). This is in the form of "https://github.com/{owner}/{repo}/blob/{commitSha}/{path}#L{lineStart}-L{lineEnd}".
 2. **Dependencies and Relationships:**
     *   Clearly document the relationships between different folders and files.
     *   Explain how different parts of the codebase interact with each other.

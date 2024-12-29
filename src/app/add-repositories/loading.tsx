@@ -2,8 +2,8 @@ import React from 'react'
 
 export default function Loading() {
     return (
-        <div className='flex items-center justify-center w-full h-full'>
-            <div className='mx-2'>Loading</div>
+        <div className="flex items-center justify-center w-full h-full">
+            <div className="mx-2">Loading</div>
             <svg
                 aria-hidden="true"
                 className="w-6 h-6 text-gray-200 animate-spin dark:text-gray-600 fill-blue-600 mx-2"

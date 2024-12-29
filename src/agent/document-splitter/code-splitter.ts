@@ -7,7 +7,10 @@ enum Language {
     RUBY = "ruby",
     RUST = "rust",
     PHP = "php",
-    CPP = "cpp"
+    CPP = "cpp",
+    JAVA = "java",
+    SCALA = "scala",
+    MARKDOWN = "markdown"
   }
 
 /**
@@ -46,6 +49,9 @@ export default class CodeSplitter {
             'hpp': Language.CPP,
             'hxx': Language.CPP,
             'h': Language.CPP,
+            'java': Language.JAVA,
+            'scala': Language.SCALA,
+            'md': Language.MARKDOWN
         };
         return extensionToLanguageMap[extension.toLowerCase()] || null;
     }
@@ -54,7 +60,7 @@ export default class CodeSplitter {
      * Splits the provided code into chunks based on the file extension.
      * @param {string} fileExtension - The file extension indicating the programming language.
      * @param {string} code - The code content to be split.
-     * @returns {Promise<string | null>}  - A promise that resolves to an array of document chunks.
+     * @returns {Promise<string | null>}  - A promise that returns the code with line numbers.
      */
     async splitCode(fileExtension: string, code: string): Promise<string | null> {
         const language : SupportedTextSplitterLanguage | null = this.getLanguageFromExtension(fileExtension);

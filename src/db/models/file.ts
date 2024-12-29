@@ -7,6 +7,7 @@ export interface FileData {
     folder_id: number
     content: string
     ai_summary: string | null
+    usage: string | null
 }
 
 export class File {
@@ -41,14 +42,14 @@ export class File {
         return result.rows[0]
     }
 
-    async update(ai_summary: string, file_id: number): Promise<FileData> {
+    async update(ai_summary: string, usage: string, file_id: number): Promise<FileData> {
         const query = `
       UPDATE File 
-      SET ai_summary = $1
-      WHERE file_id = $2
+      SET ai_summary = $1, usage = $2
+      WHERE file_id = $3
       RETURNING *;
     `
-        const values = [ai_summary, file_id]
+        const values = [ai_summary, usage, file_id]
         const result = await dbConn.query<FileData>(query, values)
         return result.rows[0]
     }

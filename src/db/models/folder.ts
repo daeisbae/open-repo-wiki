@@ -7,6 +7,7 @@ export interface FolderData {
     parent_folder_id: number | null
     ai_summary: string | null
     branch_id: number
+    usage: string | null
 }
 
 export class Folder {
@@ -57,15 +58,15 @@ export class Folder {
         return result.rows[0]
     }
 
-    async update(ai_summary: string, folder_id: number): Promise<FolderData> {
+    async update(ai_summary: string, usage: string, folder_id: number): Promise<FolderData> {
         const query = `
             UPDATE Folder 
-            SET ai_summary = $1
-            WHERE folder_id = $2
+            SET ai_summary = $1, usage = $2
+            WHERE folder_id = $3
             RETURNING *;
         `
 
-        const values = [ai_summary, folder_id]
+        const values = [ai_summary, usage, folder_id]
         const result = await dbConn.query(query, values)
         return result.rows[0]
     }

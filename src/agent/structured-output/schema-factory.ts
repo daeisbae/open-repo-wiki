@@ -46,6 +46,11 @@ File Schema Example Output:
                 path: z
                     .string()
                     .describe('Path to the file within the repository.'),
+                usage: z
+                    .string()
+                    .describe(
+                        'What the file is used for. Describe less than 10 words (ex. Data Parsing, API Requests, etc.)'
+                    ),
                 summary: z
                     .string()
                     .describe(
@@ -82,30 +87,13 @@ Folder Schema Example Output:
         case SchemaType.FOLDER:
             return z.object({
                 name: z.string().describe('Name of the folder.'),
-                usage: z.string().describe('What the folder is used for.'),
+                usage: z.string().describe('What the folder is used for. Describe less than 10 words (ex. Server Lifecycle Management, API Utility Functions, etc.)'),
                 path: z.string().describe('Path to the folder.'),
                 summary: z
                     .string()
                     .describe(
                         'Summary of the folder, its main purpose, and its role in the project. Include Markdown links to important code blocks within the file using the format `[{Description of Code Block}]({Full github url of the file including the start line with optional ending line}#L{startLine}-L{endLine})` where applicable.'
-                    ),
-                files: z
-                    .array(
-                        z.object({
-                            fileName: z
-                                .string()
-                                .describe(
-                                    'Name of the file mentioned in the summary'
-                                ),
-                            filePath: z
-                                .string()
-                                .describe(
-                                    'Path to the file mentioned in the summary'
-                                ),
-                        })
                     )
-                    .optional()
-                    .describe('List of files in the folder.'),
             })
 
         default:

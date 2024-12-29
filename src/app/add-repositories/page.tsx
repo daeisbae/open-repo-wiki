@@ -23,7 +23,9 @@ export default function AddRepository() {
                 const result = await insertRepository(owner, repo)
 
                 if (!result.success) {
-                    setError(result.error)
+                    result.error
+                        ? setError(result.error)
+                        : setError('Failed to process repository')
                 } else {
                     setSuccess(`Repository ${owner}/${repo} added successfully`)
                 }
@@ -44,7 +46,7 @@ export default function AddRepository() {
     }
 
     return (
-        <div className="flex flex-col items-center justify-center p-24">
+        <div className="flex flex-col items-center justify-center w-full h-full">
             <h1 className="text-2xl font-bold mb-8">Add Repository</h1>
             <form
                 onSubmit={handleSubmit}
