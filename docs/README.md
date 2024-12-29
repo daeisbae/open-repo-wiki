@@ -56,7 +56,7 @@
 - **Rate Limiting Prevents Wiki Generation:** The system is currently unable to analyze the repository to generate a wiki due to GitHub API rate limits.
     - The system informs the user and suggests trying again later.
 
-# 2. Plan
+# 2. Workflow for Code Summarization
 
 ## 2.1 Crawling the Github Repo Information
 
@@ -135,7 +135,7 @@ https://api.github.com/repos/Octocat/Hello-World/contents?ref=7fd1a60b01f91b314f
 
 Retrieve the file of the repository by providing the repo owner, the name of the repo, hash of the given commit to refer the file, full file path including the filename
 
-### 2.3.1 Information to fetch:
+### 2.3.1 Information to fetch
 
 - file (Plain text or any format based on file extension)
 
@@ -151,7 +151,7 @@ Hello World!
 
 ### 2.4.1 Document Splitter
 
-Splitting document based on the code provided. Planning to split by code blocks providing specific line number will be ideal for LLM to ingest data
+Splitting document based on the code provided. This is to request LLM to provide correct line number for specific code block.
 
 [How to split code | 🦜️🔗 Langchain](https://js.langchain.com/docs/how_to/code_splitter)
 
@@ -180,63 +180,43 @@ const JS_CODE = `
 ]
 ```
 
-### 2.4.2 Embedding
+### 2.4.2 Prompting
 
-Convert the documents into vector of numbers for contextual understanding
+Enforce LLM to give the insight of the codebase.
 
-[Introducing text and code embeddings](https://openai.com/index/introducing-text-and-code-embeddings/)
+[String Prompt Template](https://js.langchain.com/docs/concepts/prompt_templates/)
 
-[Gemini API pricing  |  Google AI for Developers](https://ai.google.dev/pricing#text-embedding004)
+### 2.4.3 Schema
 
-### 2.4.3 VectorStore
+Ensure the LLM outputs in a predefined JSON format
 
-Store vectors of numbers that were converted from numbers. We will use Chroma VectorStore for production. (Due to reliability) But now use Memory VectorStore for now.
+[Schema using Langchain with Zod](https://js.langchain.com/v0.1/docs/modules/model_io/output_parsers/types/structured/)
 
-[MemoryVectorStore | 🦜️🔗 Langchain](https://js.langchain.com/docs/integrations/vectorstores/memory/)
+### 2.4.4 Prompt + Schema
 
-[Chroma | 🦜️🔗 Langchain](https://js.langchain.com/docs/integrations/vectorstores/chroma/)
+Give instructions through prompting and ask llm to output based on the defined schema.
 
-### 2.4.4 Chaining
+## 2.5 Folder Summarization
 
-Let the LLM analyze our codebase and return the explanation of the codebase structure, how the folder structure looks like, Some core functionalities.
+After summarizing all the files, we will give all the children files and folders summarization to the LLM, asking to summarize again about it's duty. This will go on recursively from the bottom to the root hierarchy.
 
-```bash
-import { ChatPromptTemplate } from "@langchain/core/prompts";
-
-const prompt = ChatPromptTemplate.fromMessages([
-  [
-    "system",
-    "You are a helpful assistant that translates {input_language} to {output_language}.",
-  ],
-  ["human", "{input}"],
-]);
-
-const chain = prompt.pipe(llm);
-await chain.invoke({
-  input_language: "English",
-  output_language: "German",
-  input: "I love programming.",
-});
-```
-
-[How use a vector store to retrieve data | 🦜️🔗 Langchain](https://js.langchain.com/v0.2/docs/how_to/vectorstore_retriever/)
-
-# 3. File Structure (Logic)
+# 3. File Structure (Core Logic)
 
 - Agent
     - LLMProvider
     - Prompt
-    - RAG (Document Splitter, Embedding, VectorStore)
-- ChatEngine
-    - GenerateDocument
+    - Document Splitter (Code Splitter)
+    - Schema (Forcing JSON schema)
+- Service
+    - Recursively retrieve folders and files, and summarize the content.
 - GithubRepo
     - File Retriever
     - Repo Dataclass
-- DB-Connector
+- DB
     - Check if User given Repo Exists
     - Input the created researched Wiki
+    - Retrieve DB
     - Save Repo to DB
-- Runner (Main)
 
 # 4. DB Modelling
 
@@ -282,7 +262,7 @@ erDiagram
     }
 
     File {
-		integer file_id PK
+		    integer file_id PK
         string name
         string language
         integer folder_id FK "References Folder"
