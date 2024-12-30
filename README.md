@@ -1,7 +1,7 @@
 
 # OpenRepoWiki
 
-[OpenRepoWiki Example Image](https://github.com/daeisbae/open-repo-wiki/blob/main/assets/openrepowiki.png)
+![OpenRepoWiki Example Image](https://github.com/daeisbae/open-repo-wiki/blob/main/assets/openrepowiki.png)
 
 **OpenRepoWiki** is a tool that automatically generates a comprehensive wiki page for any given GitHub repository. It leverages an LLM enhanced with prompt engineering to analyze the repository's codebase, structure, and documentation, providing users with a clear and concise understanding of the project.
 
