@@ -17,6 +17,20 @@ export function whitelistedFile(
 }
 
 /**
+ * Filter the files based on the regex patterns
+ * @param {Array<string>} files - The files to filter (Provided by fetchGithubRepoTree)
+ * @param {Array<string>} regexFilter - The regex patterns to allow the files
+ * @returns {Array<string>} - The allowed files (folders that match the patterns)
+ */
+export function blacklistedFiles(files: string[], regexFilter: string[]) {
+    const filterPatterns = regexFilter.map((pattern) => new RegExp(pattern))
+    return files.filter((file) =>
+    !filterPatterns.some((pattern) => pattern.test(file.toLowerCase()))
+    )
+}
+
+
+/**
  * Filter the folders based on the regex patterns
  * @param {Array<RepoTreeResult>} folders - The folders to filter (Provided by fetchGithubRepoTree)
  * @param {Array<string>} regexFilter - The regex patterns to allow the folders
@@ -38,7 +52,7 @@ export const whitelistedFilter = [
     '\\.ts$',
     '\\.java$',
     '\\.scala',
-    'README.md',
+    '\\.md',
     '\\.cpp$',
     '\\.cc$',
     '\\.cxx$',
@@ -49,6 +63,22 @@ export const whitelistedFilter = [
     '\\.rb$',
     '\\.rs$',
     '\\.php$',
+]
+
+export const blacklistedFile = [
+    '__init__.py',
+    'setup.py',
+    'next-env.d.ts',
+    'license.md',
+    'contributor.md',
+    'contributing.md',
+    'contrib.md',
+    'code_of_conduct.md',
+    'security.md',
+    'development.md',
+    'funding.md',
+    'pull_request_template.md',
+    'issue_template.md'
 ]
 
 export const blacklistedFilter = [
