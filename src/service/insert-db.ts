@@ -3,7 +3,7 @@ import { Branch, BranchData } from '@/db/models/branch'
 import { Folder, FolderData } from '@/db/models/folder'
 import { File, FileData } from '@/db/models/file'
 import { fetchGithubRepoFile, fetchGithubRepoDetails, fetchGithubRepoTree, RepoTreeResult  } from '@/github/fetchrepo'
-import { whitelistedFilter, whitelistedFile, blacklistedFilter, blacklistedFolder }  from '@/github/filterfile'
+import { whitelistedFilter, whitelistedFile, blacklistedFilter, blacklistedFolder, blacklistedFiles, blacklistedFile }  from '@/github/filterfile'
 import { FolderProcessor, CodeProcessor } from '@/agent/structured-output/index'
 import { LLMProvider } from '@/llm/llm-provider'
 
@@ -74,7 +74,8 @@ export class InsertRepoService {
         branchId: number,
         parentFolderId: number | null
     ): Promise<FolderResult | null> {
-        const allowedFiles = whitelistedFile(tree.files, whitelistedFilter);
+        let allowedFiles = whitelistedFile(tree.files, whitelistedFilter);
+        allowedFiles = blacklistedFiles(allowedFiles, blacklistedFile);
 
         const allowedFolders = blacklistedFolder(tree.subdirectories, blacklistedFilter);
 
