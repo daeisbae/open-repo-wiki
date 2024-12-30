@@ -32,6 +32,13 @@ export class Repository {
         }
     }
 
+    async selectAll(): Promise<RepositoryData[] | null> {
+        const queryRepo = 'SELECT * FROM Repository'
+        
+        const repoResult = await dbConn.query(queryRepo)
+        return repoResult.rows
+    }
+
     async insert(
         url: string,
         owner: string,
@@ -81,6 +88,9 @@ export class Repository {
             const topicRepoValues = [topic, url]
             await dbConn.query(topicRepoQuery, topicRepoValues)
         }
+
+        console.log(result)
+        console.log(result.rows)
 
         return result.rows[0];
     }
