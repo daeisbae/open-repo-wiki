@@ -1,19 +1,44 @@
-import { Pool, QueryResult } from 'pg'
+import pg, { QueryResult } from 'pg'
+// import { promises as fs } from 'fs'
+import {readFileSync} from 'fs'
 import { DBConfig } from '@/db/config/config'
+import { promises as fs } from 'fs'
 
 /**
  * Database connection handler (Instance pattern - Although not recommended due to thread issue, this is currently the best solution)
  * @class DatabaseConnector
  */
 class DBConnector {
-    private pool: Pool
+    private pool: pg.Pool
+    private conn: boolean
+    private static instance: DBConnector
 
     /**
      * Creates a new database connection pool
      * @constructor
      */
-    constructor() {
-        this.pool = new Pool(DBConfig)
+    private constructor() {
+        const { Pool } = pg
+        this.conn = false
+        this.pool = new Pool({...DBConfig, ...{
+            ssl: {
+                rejectUnauthorized: false,
+                ca: fs.readFile(process.cwd() + '/src/assets/ca-certificate.crt')
+                    .toString(),
+                sslmode: 'require',
+            },
+        }})
+    }
+
+    /**
+     * Get the instance of the database connector
+     * @returns The database connector instance
+     */
+    static getInstance(): DBConnector {
+        if (!DBConnector.instance) {
+            DBConnector.instance = new DBConnector()
+        }
+        return DBConnector.instance
     }
 
     /**
@@ -27,10 +52,17 @@ class DBConnector {
         text: string,
         params?: any[]
     ): Promise<QueryResult<T>> {
+        let client: pg.PoolClient | undefined = undefined
         try {
-            return await this.pool.query(text, params)
+            client = await this.pool.connect()
+            this.conn = true
+            const result = await this.pool.query(text, params)
+            await client.release()
+            this.conn = false
+            return result
         } catch (error) {
-            throw new Error(
+            this.conn && client.release()
+            console.log(
                 `Database query failed: ${
                     error instanceof Error ? error.message : 'Unknown error'
                 }`
@@ -39,4 +71,5 @@ class DBConnector {
     }
 }
 
-export default new DBConnector()
+// eslint-disable-next-line import/no-anonymous-default-export
+export default DBConnector.getInstance()
