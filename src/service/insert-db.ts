@@ -40,7 +40,7 @@ export class InsertRepoService {
         owner: string,
         repo: string,
     ): Promise<RepositoryData | null> {
-        const repoDetails = await fetchGithubRepoDetails(owner, repo, true)
+        const repoDetails = await fetchGithubRepoDetails(owner, repo)
         const repositoryData = await this.repository.insert(repoDetails.url, repoDetails.repoOwner, repoDetails.repoName, repoDetails.language, repoDetails.description, repoDetails.defaultBranch, repoDetails.topics, repoDetails.stars, repoDetails.forks)
 
         if(!repositoryData) {
@@ -59,7 +59,7 @@ export class InsertRepoService {
             commitSha: sha
         }
 
-        const tree = await fetchGithubRepoTree(owner, repo, repoDetails.sha, '', true)
+        const tree = await fetchGithubRepoTree(owner, repo, repoDetails.sha, '')
         
         await this.recursiveInsertFolder(owner, repo, sha, tree, branchId, null)
 
