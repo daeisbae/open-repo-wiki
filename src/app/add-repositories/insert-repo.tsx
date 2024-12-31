@@ -1,15 +1,12 @@
 'use server'
 
-import LLMConfig from '@/llm/llm-config'
-import LLMFactory from '@/app/add-repositories/llm-factory'
-import { InsertRepoService } from '@/service/insert-db'
+import InsertQueue from '@/service/insert-queue'
 
 export async function insertRepository(owner: string, repo: string) {
-    const llmConfig = new LLMConfig(1, 0.95, 40, 8192)
-    const insertRepoService = new InsertRepoService(LLMFactory.createProvider(llmConfig))
-    const result = await insertRepoService.insertRepository(owner, repo)
+    const queue = InsertQueue.getInstance()
+    const result = await queue.add({ owner, repo })
     if (!result) {
-        return { success: false, error: 'Repository already exists' }
+        return { success: false, error: 'Repository already in queue or invalid. Else wiki generation queue maybe full' }
     }
     return { success: true }
 }

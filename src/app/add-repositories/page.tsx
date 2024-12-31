@@ -27,7 +27,7 @@ export default function AddRepository() {
                         ? setError(result.error)
                         : setError('Failed to process repository')
                 } else {
-                    setSuccess(`Repository ${owner}/${repo} added successfully`)
+                    setSuccess(`Repository ${owner}/${repo} loaded into queue`)
                 }
             } catch (err) {
                 setError('Failed to process repository')

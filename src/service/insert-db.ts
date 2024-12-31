@@ -43,8 +43,10 @@ export class InsertRepoService {
         const repoDetails = await fetchGithubRepoDetails(owner, repo)
         const repositoryData = await this.repository.insert(repoDetails.url, repoDetails.repoOwner, repoDetails.repoName, repoDetails.language, repoDetails.description, repoDetails.defaultBranch, repoDetails.topics, repoDetails.stars, repoDetails.forks)
 
+        // Do not allow duplicate repositories
         if(!repositoryData) {
             console.log(`Repository already exists {owner}/{repo}`)
+            return null
         }
         
         const sha = repoDetails.sha
