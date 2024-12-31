@@ -192,8 +192,7 @@ describe('fetchGithubRepoFile', () => {
 
         expect(result).toEqual(expectedOutput)
         expect(axios.get).toHaveBeenCalledWith(
-            'https://raw.githubusercontent.com/octocat/Hello-World/7fd1a60b01f91b314f59955a4e4d4e80d8edf11d/',
-            undefined // Due to Github authentication @fetchRepo axios parameter
+            'https://raw.githubusercontent.com/octocat/Hello-World/7fd1a60b01f91b314f59955a4e4d4e80d8edf11d/'
         )
     })
 })

@@ -1,6 +1,8 @@
 import axios from 'axios'
 import { GithubAuthConfig } from '@/github/config'
 
+axios.defaults.headers.common['Authorization'] = GithubAuthConfig.headers.Authorization
+
 interface RepoResponse {
     owner: {
         login: string
@@ -58,21 +60,18 @@ export interface RepoTreeResult {
 export async function fetchGithubRepoDetails(
     owner: string,
     repo: string,
-    useAuth: boolean = false
 ): Promise<RepoDetails> {
     const repoUrl = `https://api.github.com/repos/${owner}/${repo}`
 
     try {
         const repoResp = await axios.get<RepoResponse>(
             repoUrl,
-            useAuth ? GithubAuthConfig : undefined
         )
         const repoData = repoResp.data
 
         const treeUrl = `https://api.github.com/repos/${owner}/${repo}/git/trees/${repoData.default_branch}`
         const treeResp = await axios.get<TreeResponse>(
             treeUrl,
-            useAuth ? GithubAuthConfig : undefined
         )
         const treeData = treeResp.data
 
@@ -115,14 +114,12 @@ export async function fetchGithubRepoTree(
     repo: string,
     sha: string,
     path: string = '',
-    useAuth: boolean = false
 ): Promise<RepoTreeResult> {
     const contentsUrl = `https://api.github.com/repos/${owner}/${repo}/contents/${path}?ref=${sha}`
 
     try {
         const { data } = await axios.get<TreeItem[]>(
             contentsUrl,
-            useAuth ? GithubAuthConfig : undefined
         )
         const result: RepoTreeResult = {
             path,
@@ -171,14 +168,12 @@ export async function fetchGithubRepoFile(
     repo: string,
     sha: string,
     path: string,
-    useAuth: boolean = false
 ): Promise<string> {
     const codeUrl = `https://raw.githubusercontent.com/${owner}/${repo}/${sha}/${path}`
 
     try {
         const response = await axios.get<string>(
             codeUrl,
-            useAuth ? GithubAuthConfig : undefined
         )
         return response.data
     } catch (error) {
