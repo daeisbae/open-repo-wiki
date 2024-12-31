@@ -87,7 +87,7 @@ export class InsertRepoService {
 
         for(const file of allowedFiles) {
             console.log(`Inserting file ${file}`)
-            const { name, ai_summary } = await this.insertFile(file, folderData.folder_id, await fetchGithubRepoFile(owner, repo, sha, file, true))
+            const { name, ai_summary } = await this.insertFile(file, folderData.folder_id, await fetchGithubRepoFile(owner, repo, sha, file))
             const fileSummary = `Summary of file ${name}:\n${ai_summary}\n\n`
             summaries.push(fileSummary)
         }
