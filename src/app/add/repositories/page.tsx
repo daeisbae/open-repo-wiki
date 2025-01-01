@@ -1,8 +1,8 @@
 'use client'
 
 import React, { useEffect, useState } from 'react'
-import { insertRepository } from '@/app/add-repositories/insert-repo'
-import Loading from '@/app/add-repositories/loading'
+import { insertRepository } from '@/app/add/repositories/insert-repo'
+import Loading from '@/app/add/repositories/loading'
 
 export default function AddRepository() {
     const [owner, setOwner] = useState('')
@@ -15,6 +15,11 @@ export default function AddRepository() {
 
     useEffect(() => {
         if (!submit) return
+        if(!owner || !repo) {
+            setError('You need to provide both owner and repository')
+            setSubmit(false)
+            return
+        }
         setSuccess(null)
         setError(null)
         const handleInsert = async () => {

@@ -1,4 +1,4 @@
-import LLMFactory from '@/app/add-repositories/llm-factory'
+import LLMFactory from '@/app/add/repositories/llm-factory'
 import { Repository, RepositoryData } from '@/db/models/repository'
 import LLMConfig from '@/llm/llm-config'
 import { InsertRepoService } from '@/service/insert-db'

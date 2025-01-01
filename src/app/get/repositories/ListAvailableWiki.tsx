@@ -14,11 +14,11 @@ export default async function ListAvailableWiki() {
     const repositories = await new Repository().selectAll()
 
     return (
-        <ul>
+        <div>
             {repositories ? (
                 repositories.map((repo) => (
-                    <li key={repo.url}>
-                        <Link href={`${repo.owner}/${repo.repo}`}>
+                    <div key={repo.url} className='p-1'>
+                        <Link href={`/${repo.owner}/${repo.repo}`}>
                             <Card>
                                 <CardHeader>
                                     <CardTitle>
@@ -42,11 +42,11 @@ export default async function ListAvailableWiki() {
                                 </CardContent>
                             </Card>
                         </Link>
-                    </li>
+                        </div>
                 ))
             ) : (
                 <p>No repositories found</p>
             )}
-        </ul>
+        </div>
     )
 }
