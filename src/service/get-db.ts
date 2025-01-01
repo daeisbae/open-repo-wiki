@@ -29,8 +29,12 @@ export class FetchRepoService {
         if (!repositoryData) return null
 
         const branchData = await this.branch.select(repositoryData.url)
+
+        const allFolders = await this.folder.select(branchData!.branch_id)
+        if (!allFolders) return null
+
         const folders: FullFolder[] = branchData
-            ? await this.getFoldersRecursively(branchData.branch_id, null)
+            ? await this.getFoldersRecursively(null, allFolders)
             : []
 
         return {
@@ -41,11 +45,9 @@ export class FetchRepoService {
     }
 
     private async getFoldersRecursively(
-        branchId: number,
-        parentFolderId: number | null
+        parentFolderId: number | null,
+        allFolders: FolderData[]
     ): Promise<FullFolder[]> {
-        const allFolders = await this.folder.select(branchId)
-        if (!allFolders) throw new Error('No folders found for the repository')
 
         const currentLevel = allFolders.filter(
             (f) => f.parent_folder_id === parentFolderId
@@ -56,8 +58,8 @@ export class FetchRepoService {
         const foldersWithChildren: FullFolder[] = []
         for (const folder of currentLevel) {
             const subfolders = await this.getFoldersRecursively(
-                branchId,
-                folder.folder_id
+                folder.folder_id,
+                allFolders
             )
                 
             const files = await this.file.select(folder.folder_id)
