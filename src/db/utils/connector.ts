@@ -1,6 +1,31 @@
 import pg, { QueryResult, QueryResultRow } from 'pg'
 import { DBConfig } from '@/db/config/config'
-import { promises as fs } from 'fs'
+import { S3Client, GetObjectCommand } from '@aws-sdk/client-s3'
+
+async function downloadCertificate() {
+	const s3Client = new S3Client({
+		region: DBConfig.certificateRegion,
+		endpoint: DBConfig.certificateLink,
+        credentials: {
+            accessKeyId: DBConfig.certificateAccessKeyID || '',
+            secretAccessKey: DBConfig.certificateSecretAccessKey || '',
+        },
+	});
+
+	try {
+		const command = new GetObjectCommand({
+			Bucket: DBConfig.certificateBucket,
+			Key: DBConfig.certificateFile,
+		});
+
+		const response = await s3Client.send(command);
+		const certificateData = await response.Body!.transformToString();
+		return certificateData;
+	} catch (error) {
+		console.error("Failed to download certificate:", error);
+		throw error;
+	}
+}
 
 /**
  * Database connection handler (Instance pattern - Although not recommended due to thread issue, this is currently the best solution)
@@ -18,21 +43,31 @@ class DBConnector {
     private constructor() {
         const { Pool } = pg
         this.conn = false
-        const { certificate, ...config } = DBConfig
-        if (!certificate) {
+        const { ...config } = DBConfig
+        if (!DBConfig.certificateLink) {
             this.pool = new Pool(config)
             return
         }
-        this.pool = new Pool({
-            ...config,
-            ssl: {
-                rejectUnauthorized: false,
-                ca: fs
-                    .readFile(process.cwd() + '/certificates/' + certificate)
-                    .toString(),
-                sslmode: 'require',
-            },
-        })
+
+        try {
+            let certificate: string | undefined = undefined
+            downloadCertificate().then((cert) => {
+                certificate = cert
+            });
+            this.pool = new Pool({
+                ...config,
+                ssl: {
+                    rejectUnauthorized: false,
+                    ca: certificate,
+                },
+            })
+        } catch (error) {
+            console.log(
+                `Database connection failed: ${
+                    error instanceof Error ? error.message : 'Unknown error'
+                }`
+            )
+        }
     }
 
     /**
@@ -66,7 +101,7 @@ class DBConnector {
             this.conn = false
             return result
         } catch (error) {
-            this.conn && client.release()
+            this.conn && client!.release()
             console.log(
                 `Database query failed: ${
                     error instanceof Error ? error.message : 'Unknown error'
