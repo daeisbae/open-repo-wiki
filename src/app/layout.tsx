@@ -20,7 +20,6 @@ export default function RootLayout({ children } : RootLayoutProps) {
             <body className="bg-white">
                 <Navbar />
                 <main className="min-h-[calc(100vh-4rem)] flex items-center justify-center max-w-7xl mx-auto p-6">{children}</main>
-                <GithubLink />
             </body>
         </html>
     )
