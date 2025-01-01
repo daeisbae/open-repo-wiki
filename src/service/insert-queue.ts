@@ -1,4 +1,4 @@
-import LLMFactory from '@/app/add/repositories/llm-factory'
+import LLMFactory from '@/service/llm-factory'
 import { Repository, RepositoryData } from '@/db/models/repository'
 import LLMConfig from '@/llm/llm-config'
 import { InsertRepoService } from '@/service/insert-db'
@@ -124,6 +124,7 @@ export default class InsertQueue {
                 item.owner,
                 item.repo
             )
+            console.log(`Finished processing item: ${item}`)
         } catch (error) {
             console.error(`Failed to process item: ${item}`, error)
         }

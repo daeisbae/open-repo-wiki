@@ -1,53 +1,47 @@
 'use client'
 
-import React, { useEffect, useState } from 'react'
-import { insertRepository } from '@/app/add/repositories/insert-repo'
+import React, { useState } from 'react'
 import Loading from '@/app/add/repositories/loading'
 
 export default function AddRepository() {
-    const [owner, setOwner] = useState('')
-    const [repo, setRepo] = useState('')
-    const [submit, setSubmit] = useState(false)
-
-    const [isLoading, setIsLoading] = useState(false)
+    const [owner, setOwner] = useState<string>('')
+    const [repo, setRepo] = useState<string>('')
+    const [isLoading, setIsLoading] = useState<boolean>(false)
     const [error, setError] = useState<string | null>(null)
     const [success, setSuccess] = useState<string | null>(null)
 
-    useEffect(() => {
-        if (!submit) return
-        if(!owner || !repo) {
+    const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+        e.preventDefault()
+
+        if (!owner || !repo) {
             setError('You need to provide both owner and repository')
-            setSubmit(false)
             return
         }
-        setSuccess(null)
-        setError(null)
-        const handleInsert = async () => {
-            try {
-                setIsLoading(true)
-                const result = await insertRepository(owner, repo)
 
-                if (!result.success) {
-                    result.error
-                        ? setError(result.error)
-                        : setError('Failed to process repository')
-                } else {
-                    setSuccess(`Repository ${owner}/${repo} loaded into queue`)
-                }
-            } catch (err) {
-                setError('Failed to process repository')
+        setIsLoading(true)
+        setError(null)
+        setSuccess(null)
+
+        try {
+            const response = await fetch('/api/repositories/add', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ owner, repo }),
+            })
+
+            const result = await response.json()
+            if (!result.success) {
+                setError(result.error || 'Failed to process repository')
+            } else {
+                setSuccess(`Repository ${owner}/${repo} loaded into queue`)
             }
-        }
-        handleInsert().then(() => {
+        } catch (err) {
+            setError('Failed to process repository')
+        } finally {
             setIsLoading(false)
-            setSubmit(false)
             setOwner('')
             setRepo('')
-        })
-    }, [owner, repo, submit])
-
-    const handleSubmit = async (e: React.FormEvent) => {
-        e.preventDefault()
+        }
     }
 
     return (
@@ -78,7 +72,6 @@ export default function AddRepository() {
                 <button
                     type="submit"
                     className="bg-blue-500 hover:bg-blue-600 disabled:opacity-70 text-white font-bold py-4 px-6 rounded-md transition-colors"
-                    onClick={() => setSubmit(true)}
                     disabled={isLoading}
                 >
                     {isLoading ? <Loading /> : <>Add Repository</>}

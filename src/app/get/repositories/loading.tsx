@@ -7,7 +7,7 @@ import {
 } from '@/components/ui/card'
 import { GitFork, Star } from 'lucide-react'
 
-export default function RepositorySkeleton() {
+export default function Loading() {
     return (
         <Card className="w-[400px]">
             <CardHeader>
