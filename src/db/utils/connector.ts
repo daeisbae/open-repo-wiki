@@ -1,6 +1,6 @@
 import pg, { QueryResult, QueryResultRow } from 'pg'
 import { DBConfig } from '@/db/config/config'
-import { promises as fs } from 'fs'
+import axios from 'axios'
 
 /**
  * Database connection handler (Instance pattern - Although not recommended due to thread issue, this is currently the best solution)
@@ -23,16 +23,28 @@ class DBConnector {
             this.pool = new Pool(config)
             return
         }
-        this.pool = new Pool({
-            ...config,
-            ssl: {
-                rejectUnauthorized: false,
-                ca: fs
-                    .readFile(process.cwd() + '/certificates/' + certificate)
-                    .toString(),
-                sslmode: 'require',
-            },
+
+        // Fetch certificate data from the provided URL
+        let certificateData: string | undefined
+        axios.get(certificate).then((res: { data: string | undefined }) => {
+            certificateData = res.data
         })
+        try {
+            this.pool = new Pool({
+                ...config,
+                ssl: {
+                    rejectUnauthorized: false,
+                    ca: certificateData,
+                    sslmode: 'require',
+                },
+            })
+        } catch (error) {
+            console.log(
+                `Database connection failed: ${
+                    error instanceof Error ? error.message : 'Unknown error'
+                }`
+            )
+        }
     }
 
     /**
