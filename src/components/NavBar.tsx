@@ -20,14 +20,26 @@ export default function Navbar() {
                 <NavigationMenu>
                     <NavigationMenuList className="hidden md:flex">
                         <NavigationMenuItem>
-                            <Link href="/repositories" legacyBehavior passHref>
+                            <Link href="/get/repositories" legacyBehavior passHref>
                                 <NavigationMenuLink
                                     className={cn(
                                         navigationMenuTriggerStyle(),
                                         'w-28'
                                     )}
                                 >
-                                    Repo
+                                    Repo List
+                                </NavigationMenuLink>
+                            </Link>
+                        </NavigationMenuItem>
+                        <NavigationMenuItem>
+                            <Link href="/add/repositories" legacyBehavior passHref>
+                                <NavigationMenuLink
+                                    className={cn(
+                                        navigationMenuTriggerStyle(),
+                                        'w-28'
+                                    )}
+                                >
+                                    Add Repo
                                 </NavigationMenuLink>
                             </Link>
                         </NavigationMenuItem>
