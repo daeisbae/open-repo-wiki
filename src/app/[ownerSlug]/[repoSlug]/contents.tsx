@@ -1,26 +1,54 @@
-import { RepoCard } from '@/components/RepoCard'
-import { FetchRepoService } from '@/service/get-db'
-import { MarkdownContent } from '@/components/MarkdownContent'
-import { notFound } from 'next/navigation'
-import { formatToMarkdown } from '@/app/[ownerSlug]/[repoSlug]/formatter'
+'use client';
+
+import { useEffect, useState } from 'react';
+import { RepoCard } from '@/components/RepoCard';
+import { MarkdownContent } from '@/components/MarkdownContent';
+import { formatToMarkdown } from '@/app/[ownerSlug]/[repoSlug]/formatter';
+import Loading from '@/app/[ownerSlug]/[repoSlug]/loading';
 
 interface RepositorySummarizationContentProps {
-    owner: string
-    repo: string
+    owner: string;
+    repo: string;
 }
 
-export default async function RepositorySummarizationContent({
+export default function RepositorySummarizationContent({
     owner,
     repo,
 }: RepositorySummarizationContentProps) {
-    const fetchRepoService = new FetchRepoService()
-    const repoDetails = await fetchRepoService.getFullRepositoryTree(
-        owner,
-        repo
-    )
+    const [repoDetails, setRepoDetails] = useState<any | null>(null);
+    const [loading, setLoading] = useState<boolean>(true);
+    const [error, setError] = useState<string | null>(null);
+
+    useEffect(() => {
+        const fetchRepoDetails = async () => {
+            try {
+                const response = await fetch(`/api/repositories/${owner}/${repo}`);
+                if (!response.ok) {
+                    throw new Error('Failed to fetch repository details');
+                }
+                const data = await response.json();
+                console.log(data);
+                setRepoDetails(data);
+            } catch (err) {
+                setError('Unable to load repository details');
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        fetchRepoDetails();
+    }, [owner, repo]);
+
+    if (loading) {
+        return <Loading />;
+    }
+
+    if (error) {
+        return <p>{error}</p>;
+    }
 
     if (!repoDetails) {
-        notFound()
+        return <p>Repository not found</p>;
     }
 
     return (
@@ -32,5 +60,5 @@ export default async function RepositorySummarizationContent({
                 <RepoCard repoInfo={repoDetails.repository} />
             </div>
         </>
-    )
+    );
 }
