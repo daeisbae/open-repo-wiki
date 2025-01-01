@@ -1,6 +1,4 @@
 import pg, { QueryResult } from 'pg'
-// import { promises as fs } from 'fs'
-import {readFileSync} from 'fs'
 import { DBConfig } from '@/db/config/config'
 import { promises as fs } from 'fs'
 
@@ -20,14 +18,21 @@ class DBConnector {
     private constructor() {
         const { Pool } = pg
         this.conn = false
-        this.pool = new Pool({...DBConfig, ...{
+        const { certificate, ...config } = DBConfig
+        if (!certificate) {
+            this.pool = new Pool(config)
+            return
+        }
+        this.pool = new Pool({
+            ...config,
             ssl: {
                 rejectUnauthorized: false,
-                ca: fs.readFile(process.cwd() + '/src/assets/ca-certificate.crt')
+                ca: fs
+                    .readFile(process.cwd() + '/certificates/' + certificate)
                     .toString(),
                 sslmode: 'require',
             },
-        }})
+        })
     }
 
     /**
