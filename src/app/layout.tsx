@@ -5,6 +5,9 @@ import Navbar from '@/components/NavBar'
 export const metadata = {
     title: 'OpenRepoWiki',
     description: 'A Wikipedia of Github Repositories of how it is made.',
+    icons: {
+        icon: '/favicon.ico',
+    }
 }
 
 interface RootLayoutProps {
