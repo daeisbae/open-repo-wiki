@@ -1,4 +1,4 @@
-import pg, { QueryResult } from 'pg'
+import pg, { QueryResult, QueryResultRow } from 'pg'
 import { DBConfig } from '@/db/config/config'
 import { promises as fs } from 'fs'
 
@@ -53,7 +53,7 @@ class DBConnector {
      * @returns Results from database query
      * @throws Database query errors
      */
-    async query<T = any>(
+    async query<T extends QueryResultRow = any>(
         text: string,
         params?: any[]
     ): Promise<QueryResult<T>> {
