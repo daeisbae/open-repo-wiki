@@ -1,5 +1,3 @@
-'use server'
-
 import InsertQueue from '@/service/insert-queue'
 
 export async function insertRepository(owner: string, repo: string) {

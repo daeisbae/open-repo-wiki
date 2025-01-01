@@ -12,6 +12,10 @@ export interface RepositoryData {
     topics: string[]
 }
 
+interface TopicResultOutput {
+    rows?: { topic_name: string }[]
+}
+
 export class Repository {
     async select(owner: string, repo: string): Promise<RepositoryData | null> {
         const queryRepo =
@@ -24,11 +28,11 @@ export class Repository {
         if (!repoResult) {
             return null
         }
-        const topicsResult = await dbConn.query(queryTopics, [repoResult.url])
+        const topicsResult: TopicResultOutput = await dbConn.query(queryTopics, [repoResult.url])
 
         return {
             ...repoResult,
-            topics: topicsResult.rows.map((row) => row.topic_name),
+            topics: topicsResult.rows!.map((row) => row.topic_name),
         }
     }
 
