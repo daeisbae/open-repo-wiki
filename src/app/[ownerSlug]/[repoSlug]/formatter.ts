@@ -1,3 +1,4 @@
+import { FileData } from '@/db/models/file'
 import { FullFolder, FullRepository } from '@/service/get-db'
 
 export function formatToMarkdown(fullRepo: FullRepository): string {
@@ -23,7 +24,7 @@ function recursiveFolderToMarkdown(
         ? `- Reference: [\`${folder.path}\`](${url}/${folder.path}) \n`
         : ''
     markdown += `\n${folder.ai_summary}\n`
-    folder.files.forEach((file) => {
+    folder.files.filter(isNotMarkdownFile).forEach((file) => {
         markdown += `###### ${file.usage}\n`
         markdown += `---\n`
         markdown += file.name
@@ -41,4 +42,8 @@ function recursiveFolderToMarkdown(
         )
     })
     return markdown
+}
+
+function isNotMarkdownFile(file: FileData): boolean {
+    return !file.name.includes('.md')
 }
