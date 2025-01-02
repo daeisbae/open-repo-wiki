@@ -1,5 +1,8 @@
+'use client'
+
 import * as React from 'react'
 import Link from 'next/link'
+import Image from 'next/image'
 import { cn } from '@/lib/utils'
 import github from '@/assets/github.png'
 
@@ -10,7 +13,9 @@ import {
     NavigationMenuList,
     navigationMenuTriggerStyle,
 } from '@/components/ui/navigation-menu'
-import Image from 'next/image'
+import { Sheet, SheetContent, SheetTitle, SheetTrigger } from "@/components/ui/sheet"
+import { Button } from "@/components/ui/button"
+import { Menu } from 'lucide-react'
 
 export default function Navbar() {
     return (
@@ -49,15 +54,43 @@ export default function Navbar() {
                     </NavigationMenuList>
                 </NavigationMenu>
 
-                <a
-                    href="https://github.com/daeisbae/open-repo-wiki"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="flex items-center gap-2 text-sm text-muted-foreground hover:text-primary transition-colors px-3 py-2 rounded-md hover:bg-gray-100"
-                >
-                    <Image src={github.src} width={16} height={16} alt="Link to the project github" />
-                    <span className="text-sm hidden sm:inline">GitHub</span>
-                </a>
+                <div className="flex items-center space-x-4">
+                    <a
+                        href="https://github.com/daeisbae/open-repo-wiki"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex items-center gap-2 text-sm text-muted-foreground hover:text-primary transition-colors px-3 py-2 rounded-md hover:bg-gray-100"
+                    >
+                        <Image src={github.src} width={16} height={16} alt="Link to the project github" />
+                        <span className="text-sm hidden sm:inline">GitHub</span>
+                    </a>
+
+                    <Sheet>
+                        <SheetTrigger asChild>
+                            <Button variant="outline" size="icon" className="md:hidden">
+                                <Menu className="h-6 w-6" />
+                                <span className="sr-only">Toggle menu</span>
+                            </Button>
+                        </SheetTrigger>
+                        <SheetContent side="right" className="w-[300px] sm:w-[400px]">
+                            <SheetTitle>Menu</SheetTitle>
+                            <nav className="flex flex-col space-y-4 mt-4">
+                                <Link 
+                                    href="/get/repositories"
+                                    className="text-lg font-medium hover:text-primary transition-colors"
+                                >
+                                    Repo List
+                                </Link>
+                                <Link 
+                                    href="/add/repositories"
+                                    className="text-lg font-medium hover:text-primary transition-colors"
+                                >
+                                    Add Repo
+                                </Link>
+                            </nav>
+                        </SheetContent>
+                    </Sheet>
+                </div>
             </div>
         </div>
     )

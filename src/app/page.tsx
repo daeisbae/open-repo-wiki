@@ -33,7 +33,7 @@ export default function GitHubSearch() {
 
   return (
     <div className="flex flex-col justify-center items-center w-full max-w-xl mx-auto">
-      <h1 className='flex items-center justify-center w-full max-w-xl py-4'>Github Repository to Wikipedia</h1>
+      <h1 className='flex items-center justify-center w-full max-w-xl py-4 text-[24px] sm:text-[30px]'>Github Repository to Wikipedia</h1>
       <Card className="w-full max-w-xl mx-auto">
         <CardContent className="pt-6">
           <form onSubmit={handleSubmit} className="space-y-4">
@@ -45,7 +45,7 @@ export default function GitHubSearch() {
                   placeholder="Enter GitHub URL or owner/repo (e.g., daeisbae/open-repo-wiki)"
                   value={searchValue}
                   onChange={(e) => setSearchValue(e.target.value)}
-                  className="pl-9 py-6"
+                  className="pl-9 py-6 text-xs md:sm"
                 />
               </div>
             </div>
