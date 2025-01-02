@@ -8,7 +8,7 @@ import { FolderProcessor, CodeProcessor } from '@/agent/structured-output/index'
 import { LLMProvider } from '@/llm/llm-provider'
 
 // The maximum allowance of words to feed LLM
-const PROCESSOR_MAX_WORD_LIMIT = 50000
+const PROCESSOR_MAX_WORD_LIMIT = 45000
 
 interface RepoFileInfo {
     repoOwner: string
@@ -109,7 +109,18 @@ export class InsertRepoService {
             summaries.push(folderSummary)
         }
 
-        const aiSummary = await this.folderProcessor.generate(summaries, {...this.repoFileInfo!, path: folderData.path}, PROCESSOR_MAX_WORD_LIMIT)
+        let aiSummary: {usage: string, summary: string} | undefined | null
+        let summaryDeduction = 0
+        while (!aiSummary) {
+            try {
+                aiSummary = await this.folderProcessor.generate(summaries, {...this.repoFileInfo!, path: folderData.path}, PROCESSOR_MAX_WORD_LIMIT - summaryDeduction)
+            } catch (err) {
+                console.warn(`Failed to generate AI summary for folder ${folderData.path}`)
+                console.log("Retrying...")
+            }
+            summaryDeduction += 2000
+        }
+
         if(!aiSummary) {
             console.error(`Failed to generate AI summary for folder ${folderData.path}`)
             return null
@@ -143,7 +154,13 @@ export class InsertRepoService {
         folder_id: number,
         content: string
     ): Promise<FileData | null> {
-        const aiSummary = await this.codeProcessor.generate(content, {...this.repoFileInfo!, path: name}, PROCESSOR_MAX_WORD_LIMIT)
+        let aiSummary: {summary: string, usage: string} | null
+        try {
+            aiSummary = await this.codeProcessor.generate(content, {...this.repoFileInfo!, path: name}, PROCESSOR_MAX_WORD_LIMIT)
+        } catch (err) {
+            console.warn(`Failed to generate AI summary for file ${name}`)
+            return null
+        }
         if(!aiSummary) {
             console.error(`Failed to generate AI summary for file ${name}`)
             return null
