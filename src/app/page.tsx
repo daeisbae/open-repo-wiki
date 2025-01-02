@@ -18,7 +18,6 @@ export default function GitHubSearch() {
     if (searchValue.startsWith('https://github.com/')) {
       const parts = searchValue.replace('https://github.com/', '').split('/')
       if (parts.length >= 2) {
-        console.log('Owner:', parts[0], 'Repo:', parts[1])
         return
       }
     }

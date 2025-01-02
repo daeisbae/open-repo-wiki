@@ -48,7 +48,7 @@ export class InsertRepoService {
 
         // Do not allow duplicate repositories
         if(!repositoryData) {
-            console.log(`Repository already exists {owner}/{repo}`)
+            console.log(`Repository already exists ${owner}/${repo}`)
             return null
         }
         
@@ -95,7 +95,7 @@ export class InsertRepoService {
             
             const insertedFile = await this.insertFile(file, folderData.folder_id, await fetchGithubRepoFile(owner, repo, sha, file))
             if(!insertedFile) {
-                console.warn(`Failed to insert file ${file}`)
+                console.error(`Failed to insert file ${file}`)
                 continue
             }
 
@@ -111,7 +111,7 @@ export class InsertRepoService {
 
         const aiSummary = await this.folderProcessor.generate(summaries, {...this.repoFileInfo!, path: folderData.path}, PROCESSOR_MAX_WORD_LIMIT)
         if(!aiSummary) {
-            console.warn(`Failed to generate AI summary for folder ${folderData.path}`)
+            console.error(`Failed to generate AI summary for folder ${folderData.path}`)
             return null
         }
         const {path, ai_summary} = await this.folder.update(aiSummary.summary, aiSummary.usage, folderData.folder_id)
@@ -145,13 +145,13 @@ export class InsertRepoService {
     ): Promise<FileData | null> {
         const aiSummary = await this.codeProcessor.generate(content, {...this.repoFileInfo!, path: name}, PROCESSOR_MAX_WORD_LIMIT)
         if(!aiSummary) {
-            console.warn(`Failed to generate AI summary for file ${name}`)
+            console.error(`Failed to generate AI summary for file ${name}`)
             return null
         }
 
         const createdFile = await this.file.insert(name, folder_id, content, aiSummary.summary, aiSummary.usage)
         if(!this.repoFileInfo) {
-            console.warn(`RepoFileInfo is not set`)
+            console.error(`RepoFileInfo is not set`)
             return null
         }
 

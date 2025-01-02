@@ -93,9 +93,6 @@ export class Repository {
             await dbConn.query(topicRepoQuery, topicRepoValues)
         }
 
-        console.log(result)
-        console.log(result.rows)
-
         return result.rows[0];
     }
 }

@@ -27,7 +27,6 @@ export default function RepositorySummarizationContent({
                     throw new Error('Failed to fetch repository details');
                 }
                 const data = await response.json();
-                console.log(data);
                 setRepoDetails(data);
             } catch (err) {
                 setError('Unable to load repository details');
