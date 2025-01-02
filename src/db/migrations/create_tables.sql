@@ -38,7 +38,7 @@ CREATE TABLE IF NOT EXISTS Branch (
 
 CREATE TABLE IF NOT EXISTS Folder (
     folder_id           SERIAL PRIMARY KEY,
-    name                VARCHAR(30),
+    name                VARCHAR(100),
     path                VARCHAR(150) NOT NULL,
     usage               VARCHAR(100),
     parent_folder_id    INTEGER,
