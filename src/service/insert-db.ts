@@ -90,39 +90,65 @@ export class InsertRepoService {
         const folderData = await this.insertFolder(tree.path.split('/').pop() || '', tree.path, branchId, parentFolderId)
         const summaries: string[] = []
 
-        for(const file of allowedFiles) {
-            console.log(`Inserting file ${file}`)
-            
-            const insertedFile = await this.insertFile(file, folderData.folder_id, await fetchGithubRepoFile(owner, repo, sha, file))
-            if(!insertedFile) {
-                console.error(`Failed to insert file ${file}`)
-                continue
+        const fetchPromises = allowedFiles.map(async (file) => {
+            const fileContent = await fetchGithubRepoFile(owner, repo, sha, file);
+            return { file, content: fileContent };
+        });
+
+
+        const fileContents = await Promise.all(fetchPromises);
+
+        const fileInsertPromises = fileContents.map(async (fileObj) => {
+            const { file, content } = fileObj;
+            console.log(`Inserting file ${file}`);
+
+            const insertedFile = await this.insertFile(file, folderData.folder_id, content);
+            if (!insertedFile) {
+                console.error(`Failed to insert file ${file}`);
+                return null;
             }
 
-            const fileSummary = `Summary of file ${insertedFile.name}:\n${insertedFile.ai_summary}\n\n`
-            summaries.push(fileSummary)
-        }
-        for(const subfolder of allowedFolders) {
-            console.log(`Traversing and Inserting folder ${subfolder.path}`)
-            const childFolder = await this.recursiveInsertFolder(owner, repo, sha, subfolder, branchId, folderData.folder_id)
-            const folderSummary = `Summary of folder ${subfolder.path}:\n${childFolder?.summary}\n\n`
-            summaries.push(folderSummary)
-        }
+            return `Summary of file ${insertedFile.name}:\n${insertedFile.ai_summary}\n\n`;
+        });
 
-        let aiSummary: {usage: string, summary: string} | undefined | null
-        let summaryDeduction = 0
-        while (!aiSummary) {
-            try {
-                aiSummary = await this.folderProcessor.generate(summaries, {...this.repoFileInfo!, path: folderData.path}, PROCESSOR_MAX_WORD_LIMIT - summaryDeduction)
-            } catch (err) {
-                console.warn(`Failed to generate AI summary for folder ${folderData.path}`)
-                console.log("Retrying...")
+        const folderInsertPromises = allowedFolders.map(async (subfolder) => {
+            console.log(`Traversing and inserting folder ${subfolder.path}`);
+            const childFolder = await this.recursiveInsertFolder(
+                owner,
+                repo,
+                sha,
+                subfolder,
+                branchId,
+                folderData.folder_id
+            );
+
+            if (childFolder?.summary) {
+                return `Summary of folder ${subfolder.path}:\n${childFolder.summary}\n\n`;
             }
-            summaryDeduction += 2000
+            return null;
+        });
+
+        const [fileSummaries, folderSummaries] = await Promise.all([
+            Promise.all(fileInsertPromises),
+            Promise.all(folderInsertPromises),
+        ]);
+
+        summaries.push(...(fileSummaries.filter(Boolean) as string[]));
+        summaries.push(...(folderSummaries.filter(Boolean) as string[]));
+
+        let aiSummary: FolderSummaryOutput | null = null;
+        try {
+            aiSummary = await this.folderProcessor.generate(summaries, {
+                ...this.repoFileInfo!,
+                path: folderData.path
+            }, PROCESSOR_MAX_WORD_LIMIT)
+        } catch (error) {
+            aiSummary = null;
         }
 
         if(!aiSummary) {
             console.error(`Failed to generate AI summary for folder ${folderData.path}`)
+            await this.folder.delete(folderData.folder_id)
             return null
         }
         const {path, ai_summary} = await this.folder.update(aiSummary.summary, aiSummary.usage, folderData.folder_id)

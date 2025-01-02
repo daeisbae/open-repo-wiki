@@ -54,7 +54,6 @@ export interface RepoTreeResult {
  * Fetches details about a GitHub repository
  * @param {string} owner - The repository owner
  * @param {string} repo - The repository name
- * @param {boolean} [useAuth=false] - Whether to use authentication for the request (for github rate limiting)
  * @returns {Promise<{language: string, description: string, stars: number, forks: number, url: string, topics: string[], repo_owner: string, repo_name: string, default_branch: string, sha: string}>}
  */
 export async function fetchGithubRepoDetails(
@@ -100,58 +99,69 @@ export async function fetchGithubRepoDetails(
     }
 }
 
+
+
+
+interface GitTreeItem {
+    path: string
+    type: 'blob' | 'tree' // 'blob' = file, 'tree' = folder
+    sha: string
+}
+
 /**
  * Fetches Tree like structure of a GitHub repository folder
  * @param {string} owner - The repository owner
  * @param {string} repo - The repository name
- * @param {string} sha - The commit sha of the repository
- * @param {string} [path=''] - Optional path within repository
- * @param {boolean} [useAuth=false] - Whether to use authentication for the request (for github rate limiting)
+ * @param {string} commitSha - The commit sha of the repository
  * @returns {Promise<{path: string, files: Array<string>, subdirectories: Array}>}
  */
 export async function fetchGithubRepoTree(
     owner: string,
     repo: string,
-    sha: string,
-    path: string = '',
+    commitSha: string
 ): Promise<RepoTreeResult> {
-    const contentsUrl = `https://api.github.com/repos/${owner}/${repo}/contents/${path}?ref=${sha}`
+    const treeUrl = `https://api.github.com/repos/${owner}/${repo}/git/trees/${commitSha}?recursive=1`
 
-    try {
-        const { data } = await axios.get<TreeItem[]>(
-            contentsUrl,
-        )
-        const result: RepoTreeResult = {
-            path,
+    const { data } = await axios.get<{tree: GitTreeItem[]}>(treeUrl)
+
+    const { tree } = data
+
+    const rootResult: RepoTreeResult = {
+        path: '',
+        files: [],
+        subdirectories: [],
+    }
+
+    const pathMap = new Map<string, RepoTreeResult>([
+        ['', rootResult], // root
+    ])
+
+    for (const item of tree) {
+        pathMap.set(item.path, {
+            path: item.path,
             files: [],
             subdirectories: [],
-        }
-
-        for (const item of data) {
-            if (item.type === 'file') {
-                result.files.push(item.path)
-            } else if (item.type === 'dir') {
-                const subDir = await fetchGithubRepoTree(
-                    owner,
-                    repo,
-                    sha,
-                    item.path
-                )
-                result.subdirectories.push(subDir)
-            }
-        }
-
-        return result
-    } catch (error) {
-        if (axios.isAxiosError(error)) {
-            throw new Error(
-                `Failed to fetch repo contents: ${
-                    error.response?.data?.message || error.message
-                }`
-            )
-        }
-        throw error
+        })
     }
+
+    for (const item of tree) {
+        const current = pathMap.get(item.path)!
+        const parentPath = item.path.includes('/')
+            ? item.path.slice(0, item.path.lastIndexOf('/'))
+            : ''
+
+        const parent = pathMap.get(parentPath)
+
+        if (!parent) continue
+
+        if (item.type === 'blob') {
+            parent.files.push(item.path)
+        } else if (item.type === 'tree') {
+            parent.subdirectories.push(current)
+        }
+    }
+
+    return rootResult
 }
 
 /**
@@ -160,7 +170,6 @@ export async function fetchGithubRepoTree(
  * @param {string} repo - The repository name
  * @param {string} sha - The commit sha of the file to fetch
  * @param {string} path - The path of the file to fetch
- * @param {boolean} [useAuth=false] - Whether to use authentication for the request (for github rate limiting)
  * @returns {Promise<String>}
  */
 export async function fetchGithubRepoFile(

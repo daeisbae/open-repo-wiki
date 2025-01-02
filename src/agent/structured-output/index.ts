@@ -111,11 +111,16 @@ export class CodeProcessor extends BaseProcessor {
             splittedDoc
         )
 
+        if (!prompt) {
+            console.warn('Prompt generation failed')
+            return null
+        }
+
         return await super.process(prompt)
     }
 }
 
-interface FolderSummaryOutput {
+export interface FolderSummaryOutput {
     name: string
     usage: string
     path: string
@@ -177,6 +182,12 @@ export class FolderProcessor extends BaseProcessor {
             undefined,
             folder
         )
+
+        if (!prompt) {
+            console.log('Prompt generation failed, Empty folder or files')
+            return null
+        }
+
         return await super.process(prompt)
     }
 }
