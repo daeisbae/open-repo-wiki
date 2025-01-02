@@ -17,7 +17,7 @@ CREATE TABLE IF NOT EXISTS RepositoryTopics (
     repository_url  VARCHAR(255),
     topic_name      VARCHAR(50),
     PRIMARY KEY (repository_url, topic_name),
-    FOREIGN KEY (repository_url) REFERENCES Repository(url),
+    FOREIGN KEY (repository_url) REFERENCES Repository(url) ON DELETE CASCADE,
     FOREIGN KEY (topic_name) REFERENCES Topics(topic_name)
 );
 
@@ -32,20 +32,20 @@ CREATE TABLE IF NOT EXISTS Branch (
     commit_at       TIMESTAMP,
     created_at      TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     ai_summary      TEXT,
-    FOREIGN KEY (repository_url) REFERENCES Repository(url),
+    FOREIGN KEY (repository_url) REFERENCES Repository(url) ON DELETE CASCADE,
     CONSTRAINT unique_last_commit_per_repo UNIQUE (repository_url, last_commit_sha)
 );
 
 CREATE TABLE IF NOT EXISTS Folder (
     folder_id           SERIAL PRIMARY KEY,
-    name                VARCHAR(30),
+    name                VARCHAR(100),
     path                VARCHAR(150) NOT NULL,
     usage               VARCHAR(100),
     parent_folder_id    INTEGER,
     ai_summary          TEXT,
     branch_id           INTEGER NOT NULL,
-    FOREIGN KEY (parent_folder_id) REFERENCES Folder(folder_id),
-    FOREIGN KEY (branch_id) REFERENCES Branch(branch_id),
+    FOREIGN KEY (parent_folder_id) REFERENCES Folder(folder_id) ON DELETE CASCADE,
+    FOREIGN KEY (branch_id) REFERENCES Branch(branch_id) ON DELETE CASCADE,
     CHECK ( (path = '' AND parent_folder_id IS NULL) OR (path != '' AND parent_folder_id IS NOT NULL) )
 );
 
@@ -57,5 +57,5 @@ CREATE TABLE IF NOT EXISTS File (
     content         TEXT,
     ai_summary      TEXT,
     usage           VARCHAR(100),
-    FOREIGN KEY (folder_id) REFERENCES Folder(folder_id)
+    FOREIGN KEY (folder_id) REFERENCES Folder(folder_id) ON DELETE CASCADE
 );
