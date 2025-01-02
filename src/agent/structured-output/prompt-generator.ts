@@ -10,7 +10,7 @@ export interface PromptTemplateConfig {
 
 /**
  * Interface for formatting instructions
- * @interface PromptTemplateVariables
+ * @interface BasePromptTemplateVariables
  */
 export interface BasePromptTemplateVariables extends RepoInfo {
     requirements: string
@@ -19,7 +19,7 @@ export interface BasePromptTemplateVariables extends RepoInfo {
 
 /**
  * Interface for basic repo module information
- * @interface ModuleInfo
+ * @interface RepoInfo
  */
 export interface RepoInfo {
     repoOwner: string
@@ -30,7 +30,7 @@ export interface RepoInfo {
 
 /**
  * Interface for formatting instructions
- * @interface PromptTemplateVariables
+ * @interface FilePromptTemplateVariables
  */
 export interface FilePromptTemplateVariables
     extends BasePromptTemplateVariables {
@@ -39,7 +39,7 @@ export interface FilePromptTemplateVariables
 
 /**
  * Interface for formatting instructions
- * @interface PromptTemplateVariables
+ * @interface FolderPromptTemplateVariables
  */
 export interface FolderPromptTemplateVariables
     extends BasePromptTemplateVariables {
@@ -98,7 +98,7 @@ export class PromptGenerator {
         variables: BasePromptTemplateVariables,
         code?: string,
         ai_summaries?: string[]
-    ): Promise<string> {
+    ): Promise<string | null> {
         const promptMap: Record<PromptType, string> = {
             [PromptType.Folder]: ai_summaries?.join('\n') ?? '',
             [PromptType.File]: code ?? '',
@@ -106,9 +106,7 @@ export class PromptGenerator {
 
         const userPrompt: string = promptMap[this.promptType]
         if (!userPrompt.length) {
-            throw new Error(
-                'Invalid prompt type or missing input for prompt generation'
-            )
+            return null
         }
 
         return this.prompt.format(

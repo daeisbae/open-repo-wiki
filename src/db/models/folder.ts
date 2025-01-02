@@ -70,4 +70,9 @@ export class Folder {
         const result = await dbConn.query(query, values)
         return result.rows[0]
     }
+
+    async delete(folder_id: number): Promise<void> {
+        const query = 'DELETE FROM Folder WHERE folder_id = $1'
+        await dbConn.query(query, [folder_id])
+    }
 }
