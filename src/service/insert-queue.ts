@@ -97,9 +97,9 @@ export default class InsertQueue {
         while (this._queue.length > 0) {
             const rateLimit = await checkRateLimit()
             if (rateLimit?.remaining! < this._rateLimitBeforeStop) {
-                console.log('Rate limit reached. Stopping queue processing.')
+                console.warn('Rate limit reached. Stopping queue processing.')
                 const waitTime = rateLimit!.reset - Date.now()
-                console.log(`Waiting for ${waitTime}ms`)
+                console.log(`Waiting for ${waitTime.toLocaleString}`)
                 await new Promise((resolve) => setTimeout(resolve, waitTime + 1000))
                 continue
             }
@@ -117,16 +117,16 @@ export default class InsertQueue {
     private async _processItem(
         item: InsertItem
     ): Promise<RepositoryData | null> {
-        console.log(`Processing item: ${item}`)
+        console.log(`Processing item: ${item.owner}/${item.repo}`)
         let result: RepositoryData | null = null
         try {
             result = await this._repoService.insertRepository(
                 item.owner,
                 item.repo
             )
-            console.log(`Finished processing item: ${item}`)
+            console.log(`Finished processing item: ${item.owner}/${item.repo}`)
         } catch (error) {
-            console.error(`Failed to process item: ${item}`, error)
+            console.error(`Failed to process item: ${item.owner}/${item.repo}`, error)
         }
 
         return result

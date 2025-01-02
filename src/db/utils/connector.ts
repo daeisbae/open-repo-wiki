@@ -62,7 +62,7 @@ class DBConnector {
                 },
             })
         } catch (error) {
-            console.log(
+            console.error(
                 `Database connection failed: ${
                     error instanceof Error ? error.message : 'Unknown error'
                 }`
@@ -102,7 +102,7 @@ class DBConnector {
             return result
         } catch (error) {
             this.conn && client!.release()
-            console.log(
+            console.error(
                 `Database query failed: ${
                     error instanceof Error ? error.message : 'Unknown error'
                 }`
