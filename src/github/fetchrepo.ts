@@ -1,7 +1,9 @@
 import axios from 'axios'
 import { GithubAuthConfig } from '@/github/config'
 
-axios.defaults.headers.common['Authorization'] = GithubAuthConfig.headers.Authorization
+if(GithubAuthConfig.headers.Authorization) {
+    axios.defaults.headers.common['Authorization'] = GithubAuthConfig.headers.Authorization
+}
 
 interface RepoResponse {
     owner: {
