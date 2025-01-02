@@ -7,6 +7,9 @@ import { whitelistedFilter, whitelistedFile, blacklistedFilter, blacklistedFolde
 import { FolderProcessor, CodeProcessor } from '@/agent/structured-output/index'
 import { LLMProvider } from '@/llm/llm-provider'
 
+// The maximum allowance of words to feed LLM
+const PROCESSOR_MAX_WORD_LIMIT = 50000
+
 interface RepoFileInfo {
     repoOwner: string
     repoName: string
@@ -89,8 +92,14 @@ export class InsertRepoService {
 
         for(const file of allowedFiles) {
             console.log(`Inserting file ${file}`)
-            const { name, ai_summary } = await this.insertFile(file, folderData.folder_id, await fetchGithubRepoFile(owner, repo, sha, file))
-            const fileSummary = `Summary of file ${name}:\n${ai_summary}\n\n`
+            
+            const insertedFile = await this.insertFile(file, folderData.folder_id, await fetchGithubRepoFile(owner, repo, sha, file))
+            if(!insertedFile) {
+                console.warn(`Failed to insert file ${file}`)
+                continue
+            }
+
+            const fileSummary = `Summary of file ${insertedFile.name}:\n${insertedFile.ai_summary}\n\n`
             summaries.push(fileSummary)
         }
         for(const subfolder of allowedFolders) {
@@ -100,7 +109,7 @@ export class InsertRepoService {
             summaries.push(folderSummary)
         }
 
-        const aiSummary = await this.folderProcessor.generate(summaries, {...this.repoFileInfo!, path: folderData.path})
+        const aiSummary = await this.folderProcessor.generate(summaries, {...this.repoFileInfo!, path: folderData.path}, PROCESSOR_MAX_WORD_LIMIT)
         if(!aiSummary) {
             console.warn(`Failed to generate AI summary for folder ${folderData.path}`)
             return null
@@ -133,18 +142,19 @@ export class InsertRepoService {
         name: string,
         folder_id: number,
         content: string
-    ): Promise<FileData> {
-        const createdFile = await this.file.insert(name, folder_id, content)
-        if(!this.repoFileInfo) {
-            console.warn(`RepoFileInfo is not set`)
-            throw new Error('Repository file information is not initialized')
-        }
-        const aiSummary = await this.codeProcessor.generate(content, {...this.repoFileInfo!, path: name})
+    ): Promise<FileData | null> {
+        const aiSummary = await this.codeProcessor.generate(content, {...this.repoFileInfo!, path: name}, PROCESSOR_MAX_WORD_LIMIT)
         if(!aiSummary) {
             console.warn(`Failed to generate AI summary for file ${name}`)
-            return createdFile
+            return null
         }
-        const updatedFile = await this.file.update(aiSummary.summary, aiSummary.usage, createdFile.file_id)
-        return updatedFile
+
+        const createdFile = await this.file.insert(name, folder_id, content, aiSummary.summary, aiSummary.usage)
+        if(!this.repoFileInfo) {
+            console.warn(`RepoFileInfo is not set`)
+            return null
+        }
+
+        return createdFile
     }
 }

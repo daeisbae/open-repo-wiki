@@ -51,8 +51,8 @@ export const whitelistedFilter = [
     '\\.js$',
     '\\.ts$',
     '\\.java$',
-    '\\.scala',
-    '\\.md',
+    '\\.scala$',
+    'README.md',
     '\\.cpp$',
     '\\.cc$',
     '\\.cxx$',
@@ -69,16 +69,6 @@ export const blacklistedFile = [
     '__init__.py',
     'setup.py',
     'next-env.d.ts',
-    'license.md',
-    'contributor.md',
-    'contributing.md',
-    'contrib.md',
-    'code_of_conduct.md',
-    'security.md',
-    'development.md',
-    'funding.md',
-    'pull_request_template.md',
-    'issue_template.md'
 ]
 
 export const blacklistedFilter = [

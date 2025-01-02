@@ -77,17 +77,25 @@ export class CodeProcessor extends BaseProcessor {
 
     /**
      * Process the given code string
-     * @param {string} path - Path of the file
      * @param {string} code - Source code to process
      * @param {RepoInfo} repoInfo - Information about the repository
+     * @param {number} codeLengthLimit - Maximum length of code to process
      * @returns Processed and parsed JSON object defined in schema factory
      */
-    async generate(code: string, repoInfo: RepoInfo): Promise<CodeSummaryOutput | null> {
+    async generate(code: string, repoInfo: RepoInfo, codeLengthLimit: number): Promise<CodeSummaryOutput | null> {
         const extension = repoInfo.path.split('.').pop()
         if (!extension) {
             console.warn('No extension found in the file path')
             return null
         }
+
+        const numWords = code.split(' ').length
+
+        if(numWords > codeLengthLimit) {
+            console.warn(`Code length exceeds word limit - ${repoInfo.path}`)
+            return null
+        }
+
         const splittedDoc = await this.codeSplitter.splitCode(extension, code)
         if (!splittedDoc) {
             console.warn('Code splitting failed')
@@ -147,9 +155,19 @@ export class FolderProcessor extends BaseProcessor {
      * Process the given code string
      * @param {Array<string> folder - summaries of files by LLMs
      * @param {RepoInfo} repoInfo - Information about the repository
+     * @param {number} wordLimit - Maximum length of summaries to process
      * @returns Processed and parsed JSON object defined in schema factory
      */
-    async generate(folder: string[], repoInfo: RepoInfo): Promise<FolderSummaryOutput | null> {
+    async generate(folder: string[], repoInfo: RepoInfo, summariesLimit: number): Promise<FolderSummaryOutput | null> {
+        let numWords = folder.join(' ').split(' ').length
+        // Remove summaries until it fits the limit
+        if(numWords > summariesLimit) {
+            while(numWords > summariesLimit) {
+                folder.pop()
+                numWords = folder.join(' ').split(' ').length
+            }
+        }
+
         const prompt = await this.promptGenerator.generate(
             {
                 requirements: FolderPrompt,
