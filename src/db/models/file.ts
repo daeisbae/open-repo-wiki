@@ -20,37 +20,19 @@ export class File {
     async insert(
         name: string,
         folderId: number,
-        content: string
+        content: string,
+        ai_summary: string,
+        usage: string
     ): Promise<FileData> {
         const query = `
-      INSERT INTO File (name, folder_id, content)
-      VALUES ($1, $2, $3)
+      INSERT INTO File (name, folder_id, content, ai_summary, usage)
+      VALUES ($1, $2, $3, $4, $5)
       ON CONFLICT DO NOTHING
       RETURNING *;
     `
-        const values = [name, folderId, content]
+        const values = [name, folderId, content, ai_summary, usage]
         const result = await dbConn.query<FileData>(query, values)
 
-        if (result.rowCount === 0) {
-            const getFileQuery =
-                'SELECT * FROM File WHERE name = $1 AND folder_id = $2'
-            const getFileValues = [name, folderId]
-            const getFileResult = await dbConn.query(getFileQuery, getFileValues)
-            return getFileResult.rows[0]
-        }
-
-        return result.rows[0]
-    }
-
-    async update(ai_summary: string, usage: string, file_id: number): Promise<FileData> {
-        const query = `
-      UPDATE File 
-      SET ai_summary = $1, usage = $2
-      WHERE file_id = $3
-      RETURNING *;
-    `
-        const values = [ai_summary, usage, file_id]
-        const result = await dbConn.query<FileData>(query, values)
         return result.rows[0]
     }
 }
