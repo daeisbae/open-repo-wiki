@@ -102,7 +102,6 @@ export const blacklistedFilter = [
     'contrib',
     'debug',
     'developer',
-    'diagram',
     'docker',
     'docs_src',
     'example',
