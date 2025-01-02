@@ -6,6 +6,7 @@ import { fetchGithubRepoFile, fetchGithubRepoDetails, fetchGithubRepoTree, RepoT
 import { whitelistedFilter, whitelistedFile, blacklistedFilter, blacklistedFolder, blacklistedFiles, blacklistedFile }  from '@/github/filterfile'
 import { FolderProcessor, CodeProcessor } from '@/agent/structured-output/index'
 import { LLMProvider } from '@/llm/llm-provider'
+import { FolderSummaryOutput } from '@/agent/structured-output/index'
 
 // The maximum allowance of words to feed LLM
 const PROCESSOR_MAX_WORD_LIMIT = 45000
@@ -51,7 +52,7 @@ export class InsertRepoService {
             console.log(`Repository already exists ${owner}/${repo}`)
             return null
         }
-        
+
         const sha = repoDetails.sha
 
         const branchCommit = await this.insertBranch(repoDetails.sha, repoDetails.defaultBranch, repoDetails.url, repoDetails.commitAt)
@@ -64,8 +65,8 @@ export class InsertRepoService {
             commitSha: sha
         }
 
-        const tree = await fetchGithubRepoTree(owner, repo, repoDetails.sha, '')
-        
+        const tree = await fetchGithubRepoTree(owner, repo, repoDetails.sha)
+
         await this.recursiveInsertFolder(owner, repo, sha, tree, branchId, null)
 
         return repositoryData

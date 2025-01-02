@@ -96,8 +96,7 @@ describe('fetchGithubRepoTree', () => {
         const result = await fetchGithubRepoTree(
             'octocat',
             'Hello-World',
-            '7fd1a60b01f91b314f59955a4e4d4e80d8edf11d',
-            ''
+            '7fd1a60b01f91b314f59955a4e4d4e80d8edf11d'
         )
 
         expect(result).toEqual(expectedOutput)
