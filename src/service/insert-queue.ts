@@ -10,6 +10,12 @@ interface InsertItem {
     repo: string
 }
 
+interface AddRepositoryQueueResult {
+    success: boolean
+    error?: string
+    message?: string
+}
+
 export default class InsertQueue {
     private _queue: InsertItem[] = []
     private _isProcessing: boolean = false
@@ -41,37 +47,40 @@ export default class InsertQueue {
     /**
      * Adds a new item to the queue
      */
-    public add(item: InsertItem): boolean {
+    public async add(item: InsertItem): Promise<AddRepositoryQueueResult> {
         // Check if item is already in the queue
         if (this._queue.find((i) => i.owner === item.owner && i.repo === item.repo)) {
-            return false
+            return {success: false, error: 'Item already in queue'}
         }
 
         // Check if item is in the database
         const isIncludedInRepo = this._repository.select(item.owner, item.repo)
         if(isIncludedInRepo == null) {
-            return false
+            return {success: false, error: 'Item already in database'}
         }
 
         // Check if the queue is full
         if (this._queue.length >= this._maxQueueSize) {
-            return false
+            return {success: false, error: 'Queue is full'}
         }
         
+        console.log(`Asking GitHub if ${item.owner}/${item.repo} exists`)
         // Check if the repository exists
-        axios.get(`https://api.github.com/repos/${item.owner}/${item.repo}`)
-            .then((res) => {
-            if (res.status === 404) {
-                return false
-            }
-        })
+    try {
+        const repoAvailable = await axios.get(`https://api.github.com/repos/${item.owner}/${item.repo}`)
+        if (repoAvailable.status !== 200) {
+            return {success: false, error: 'Repository does not exist'}
+        }
+    } catch (error) {
+        return {success: false, error: 'Repository does not exist'}
+    }
         
         this._queue.push(item)
 
         if (!this._isProcessing) {
             this._processQueue()
         }
-        return true
+        return {success: true, message: `Repository ${item.owner}/${item.repo} added to queue`}
     }
 
     /**
