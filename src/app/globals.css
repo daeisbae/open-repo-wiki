@@ -70,3 +70,40 @@ a > code {
   padding: 2px 4px;
   border-radius: 4px;
 }
+
+@media screen and (max-width: 768px) {
+  h1 {
+    font-size: 24px;
+    padding-bottom: 0;
+  }
+
+  h2 {
+    font-size: 22px;
+  }
+
+  h3 {
+    font-size: 20px;
+  }
+
+  h4 {
+    font-size: 18px;
+  }
+
+  h5 {
+    font-size: 18px;
+  }
+
+  h6 {
+    font-size: 18px;
+  }
+
+  ul {
+    padding-top: 6px;
+    padding-bottom:6px;
+  }
+
+  a > code {
+    padding: 1px 3px;
+    border-radius: 4px;
+  }
+}

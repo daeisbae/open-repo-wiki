@@ -14,7 +14,7 @@ export default async function Page({
 
 
     return (
-        <div className="flex gap-6 p-6">
+        <div className="flex gap-6 md:p-6 max-w-full overflow-x-hidden">
             <Suspense fallback={<Loading />}>
                 <RepositorySummarizationContent
                     owner={ownerSlug}
