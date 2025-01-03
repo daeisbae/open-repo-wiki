@@ -1,6 +1,3 @@
-'use client';
-
-import { useEffect, useState } from 'react';
 import { RepoCard } from '@/components/RepoCard';
 import { MarkdownContent } from '@/components/MarkdownContent';
 import { formatToMarkdown } from '@/app/[ownerSlug]/[repoSlug]/formatter';
