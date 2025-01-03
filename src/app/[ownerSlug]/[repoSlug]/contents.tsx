@@ -5,6 +5,7 @@ import { RepoCard } from '@/components/RepoCard';
 import { MarkdownContent } from '@/components/MarkdownContent';
 import { formatToMarkdown } from '@/app/[ownerSlug]/[repoSlug]/formatter';
 import Loading from '@/app/[ownerSlug]/[repoSlug]/loading';
+import { notFound } from 'next/navigation';
 
 interface RepositorySummarizationContentProps {
     owner: string;
@@ -21,15 +22,23 @@ export default function RepositorySummarizationContent({
 
     useEffect(() => {
         const fetchRepoDetails = async () => {
+
             try {
                 const response = await fetch(`/api/repositories/${owner}/${repo}`);
-                if (!response.ok) {
-                    throw new Error('Failed to fetch repository details');
+                if (response.ok) {
+                    const data = await response.json();
+                    setRepoDetails(data);
+                } else {
+                    const validRepo = await fetch(`https://api.github.com/repos/${owner}/${repo}`);
+                    if (!validRepo.ok) {
+                        setError('Repository does not exist');
+                        
+                    }
+                    notFound();
                 }
-                const data = await response.json();
-                setRepoDetails(data);
+
             } catch (err) {
-                setError('Unable to load repository details');
+                setRepoDetails(null);
             } finally {
                 setLoading(false);
             }
@@ -43,19 +52,19 @@ export default function RepositorySummarizationContent({
     }
 
     if (error) {
-        return <p>{error}</p>;
+        return <h1>Repository does not exist</h1>;
     }
 
     if (!repoDetails) {
-        return <p>Repository not found</p>;
+        return notFound();
     }
 
     return (
-        <div className="flex flex-col md:flex-row gap-6">
-            <div className="w-full md:w-1/3 md:order-2">
+        <div className="flex px-2 overflow-x-hidden flex-col lg:flex-row">
+            <div className="w-full lg:w-1/3 lg:order-2 md:pl-6">
                 <RepoCard repoInfo={repoDetails.repository} />
             </div>
-            <div className="w-full md:w-2/3 md:order-1">
+            <div className="w-full mt-6 lg:w-2/3 lg:order-1">
                 <MarkdownContent content={formatToMarkdown(repoDetails)} />
             </div>
         </div>

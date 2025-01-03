@@ -2,10 +2,12 @@
 
 import React, { useState } from 'react'
 import Loading from '@/app/add/repositories/loading'
+import { useSearchParams } from 'next/navigation'
 
 export default function AddRepository() {
-    const [owner, setOwner] = useState<string>('')
-    const [repo, setRepo] = useState<string>('')
+    const searchParams = useSearchParams()
+    const [owner, setOwner] = useState<string>(searchParams.get('owner') || '')
+    const [repo, setRepo] = useState<string>(searchParams.get('repo') || '')
     const [isLoading, setIsLoading] = useState<boolean>(false)
     const [error, setError] = useState<string | null>(null)
     const [success, setSuccess] = useState<string | null>(null)
@@ -45,25 +47,25 @@ export default function AddRepository() {
     }
 
     return (
-        <div className="flex flex-col items-center justify-center w-full h-full">
-            <h1 className="text-2xl font-bold mb-8">Add Repository</h1>
+        <div className="flex flex-col items-center justify-center w-full h-full overflow-y-hidden">
+            <h1 className="font-bold text-lg sm:text-2xl md:text-3xl pb-4">Add Repository</h1>
             <form
                 onSubmit={handleSubmit}
                 className="flex flex-col gap-4 w-full max-w-md p-6 border rounded-lg shadow-sm"
             >
                 <div className="flex flex-col gap-4">
                     <input
-                        className="p-4 border rounded-md"
+                        className="p-4 border rounded-md text-center"
                         type="text"
-                        placeholder="Owner"
+                        placeholder="Github Name"
                         value={owner}
                         onChange={(e) => setOwner(e.target.value)}
                         disabled={isLoading}
                     />
                     <input
-                        className="p-4 border rounded-md"
+                        className="p-4 border rounded-md text-center"
                         type="text"
-                        placeholder="Repository"
+                        placeholder="Repository Name"
                         value={repo}
                         onChange={(e) => setRepo(e.target.value)}
                         disabled={isLoading}
@@ -71,7 +73,7 @@ export default function AddRepository() {
                 </div>
                 <button
                     type="submit"
-                    className="bg-blue-500 hover:bg-blue-600 disabled:opacity-70 text-white font-bold py-4 px-6 rounded-md transition-colors"
+                    className="bg-black hover:bg-slate-900 disabled:opacity-70 text-white font-bold py-4 px-6 rounded-md transition-colors"
                     disabled={isLoading}
                 >
                     {isLoading ? <Loading /> : <>Add Repository</>}
