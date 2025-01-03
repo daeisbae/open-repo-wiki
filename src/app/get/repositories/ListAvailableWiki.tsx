@@ -1,6 +1,4 @@
-'use client';
-
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import {
     Card,
     CardContent,
@@ -10,58 +8,11 @@ import {
 } from '@/components/ui/card';
 import Link from 'next/link';
 import { GitFork, Star } from 'lucide-react';
-import Loading from '@/app/get/repositories/loading';
+import { Repository } from '@/db/models/repository';
 
-interface Repository {
-    url: string;
-    owner: string;
-    repo: string;
-    descriptions: string;
-    stars: number;
-    forks: number;
-}
-
-export default function ListAvailableWiki() {
-    const [repositories, setRepositories] = useState<Repository[] | null>(null);
-    const [loading, setLoading] = useState<boolean>(true);
-    const [error, setError] = useState<string | null>(null);
-
-    useEffect(() => {
-        const fetchRepositories = async () => {
-            try {
-                const response = await fetch('/api/repositories/get', {
-                    method: 'GET',
-                });
-                const data = await response.json();
-
-                if (data.success) {
-                    setRepositories(data.data);
-                } else {
-                    setError(data.error || 'Failed to load repositories');
-                }
-            } catch (err) {
-                setError('An error occurred while fetching repositories');
-            } finally {
-                setLoading(false);
-            }
-        };
-
-        fetchRepositories();
-    }, []);
-
-    if (loading) {
-        return (
-            <Loading />
-        );
-    }
-
-    if (error) {
-        return (
-            <div className="p-4 text-center">
-                <p>{error}</p>
-            </div>
-        );
-    }
+export default async function ListAvailableWiki() {
+    const repoModel = new Repository()
+    const repositories = await repoModel.selectAll()
 
     return (
         <div>
