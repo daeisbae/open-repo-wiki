@@ -1,49 +1,57 @@
-import { FileData } from '@/db/models/file'
+
 import { FullFolder, FullRepository } from '@/service/get-db'
 
-export function formatToMarkdown(fullRepo: FullRepository): string {
+export function formatToMarkdownSections(fullRepo: FullRepository): string[] {
     const repo = fullRepo.repository
     const branches = fullRepo.branch
     const folders = fullRepo.folders
 
     const url = `https://github.com/${repo.owner}/${repo.repo}/blob/${branches?.last_commit_sha}`
 
-    let markdown = recursiveFolderToMarkdown(folders[0], url, '#')
+    // We'll accumulate our markdown sections in an array
+    const sections: string[] = []
+    if (folders.length > 0) {
+        recursiveFolderToMarkdownSections(folders[0], url, '#', sections)
+    }
 
-    return markdown
+    return sections
 }
 
-function recursiveFolderToMarkdown(
+function recursiveFolderToMarkdownSections(
     folder: FullFolder,
     url: string,
-    subfolderHeading: string
-): string {
-    let markdown = `${subfolderHeading} ${folder.usage}\n `
+    subfolderHeading: string,
+    sections: string[]
+) {
+    let markdown = `${subfolderHeading} ${folder.usage}\n`
     markdown += `---\n`
     markdown += folder.path
         ? `- Reference: [\`${folder.path}\`](${url}/${folder.path}) \n`
         : ''
     markdown += `\n${folder.ai_summary}\n`
-    folder.files.filter(isNotMarkdownFile).forEach((file) => {
-        markdown += `###### ${file.usage}\n`
-        markdown += `---\n`
-        markdown += file.name
-            ? `- Reference: [\`${file.name}\`](${url}/${file.name}) \n`
-            : ''
-        markdown += `\n${file.ai_summary}\n`
-    })
+
+    // folder.files.filter(isNotMarkdownFile).forEach((file) => {
+    //     markdown += `###### ${file.usage}\n`
+    //     markdown += `---\n`
+    //     markdown += file.name
+    //         ? `- Reference: [\`${file.name}\`](${url}/${file.name}) \n`
+    //         : ''
+    //     markdown += `\n${file.ai_summary}\n`
+    // })
+
+    // Each "folder section" is one chunk of markdown
+    sections.push(markdown)
+
     folder.subfolders.forEach((subfolder) => {
-        markdown += recursiveFolderToMarkdown(
+        recursiveFolderToMarkdownSections(
             subfolder,
             url,
-            subfolderHeading.length >= 5
-                ? subfolderHeading
-                : subfolderHeading + '#'
+            subfolderHeading.length >= 5 ? subfolderHeading : subfolderHeading + '#',
+            sections
         )
     })
-    return markdown
 }
 
-function isNotMarkdownFile(file: FileData): boolean {
-    return !file.name.includes('.md')
-}
+// function isNotMarkdownFile(file: FileData): boolean {
+//     return !file.name.includes('.md')
+// }
