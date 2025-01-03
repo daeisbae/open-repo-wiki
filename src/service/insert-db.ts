@@ -99,9 +99,9 @@ export class InsertRepoService {
         });
 
 
-        const fileContents = await Promise.all(fetchFilePromises);
+        const fetchedFiles = await Promise.all(fetchFilePromises);
 
-        const fetchAISummaryPromises = fileContents.map(async (file) => {
+        const fetchAIFileSummaryPromises = fetchedFiles.map(async (file) => {
             if(!file.content) {
                 console.error(`No content for file ${file.file}`)
                 return null
@@ -110,27 +110,22 @@ export class InsertRepoService {
             return { file: file.file, content: file.content, summary: aiSummary!.summary, usage: aiSummary!.usage }
         });
 
-        const fileSummaries = await Promise.all(fetchAISummaryPromises);
+        const fileContents = await Promise.all(fetchAIFileSummaryPromises);
 
-        const fileProcessPromise = allowedFiles.map(async (file) => {
-            console.log(`Processing file ${file}`)
-            const foundFileSummary = fileSummaries.find(f => f?.file === file)
-            if(foundFileSummary === undefined) {
-                console.error(`No summary for file ${file}`)
-                return null
+        for(const fileContent of fileContents) {
+            if(!fileContent) {
+                continue
             }
-            const insertedFile = await this.insertFile(file, folderData.folder_id, foundFileSummary!.content, foundFileSummary!.summary, foundFileSummary!.usage)
+            console.log(`Processing file ${fileContent?.file}`)
+            const insertedFile = await this.insertFile(fileContent.file, folderData.folder_id, fileContent.content, fileContent.summary, fileContent.usage)
             if(!insertedFile) {
-                console.error(`Failed to insert file ${file}`)
-                return null
+                console.error(`Failed to insert file ${fileContent.file}`)
+                continue
             }
 
             const fileSummary = `Summary of file ${insertedFile.name}:\n${insertedFile.ai_summary}\n\n`
-            return fileSummary
-        });
-
-        const fileProcessed = await Promise.all(fileProcessPromise);
-        summaries.push(...fileProcessed.filter(f => f !== null));
+            summaries.push(fileSummary)
+        };
 
         for(const subfolder of allowedFolders) {
             console.log(`Traversing and Inserting folder ${subfolder.path}`)
