@@ -36,7 +36,7 @@ abstract class BaseProcessor {
     }
 }
 
-interface CodeSummaryOutput {
+export interface CodeSummaryOutput {
     name: string
     path: string
     summary: string
@@ -79,20 +79,12 @@ export class CodeProcessor extends BaseProcessor {
      * Process the given code string
      * @param {string} code - Source code to process
      * @param {RepoInfo} repoInfo - Information about the repository
-     * @param {number} codeLengthLimit - Maximum length of code to process
      * @returns Processed and parsed JSON object defined in schema factory
      */
-    async generate(code: string, repoInfo: RepoInfo, codeLengthLimit: number): Promise<CodeSummaryOutput | null> {
+    async generate(code: string, repoInfo: RepoInfo): Promise<CodeSummaryOutput | null> {
         const extension = repoInfo.path.split('.').pop()
         if (!extension) {
             console.warn('No extension found in the file path')
-            return null
-        }
-
-        const numWords = code.split(' ').length
-
-        if(numWords > codeLengthLimit) {
-            console.warn(`Code length exceeds word limit - ${repoInfo.path}`)
             return null
         }
 
