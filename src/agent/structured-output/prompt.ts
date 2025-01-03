@@ -52,6 +52,7 @@ You will receive the following information, summarized from the expert software 
 **Analysis Tasks:**
 
 1. **High-Level Overview:**
+    *   Start by providing the core functionality among the folders or files. (ex. the folder name \"core\", \"src\" or folder with the same repository name usually contains the core functionality of the system. You can ignore utility folders unless they contain important information or there are nothing to explain.)
     *   Provide a concise summary of the folder's responsibilities and functionalities based on it\'s sub-files and sub-folders summaries.
     *   Explain its role in the overall system.
     *   Identify its dependencies on other modules/components/folder.
