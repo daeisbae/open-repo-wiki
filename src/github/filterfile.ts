@@ -66,6 +66,7 @@ export const whitelistedFilter = [
 ]
 
 export const blacklistedFile = [
+    '(^|/)\\.[^/]+($|/)', // File starting with a dot
     '__init__.py',
     'setup.py',
     'next-env.d.ts',
@@ -75,20 +76,7 @@ export const blacklistedFile = [
 ]
 
 export const blacklistedFilter = [
-    '.cargo',
-    '.ci',
-    '.circleci',
-    '.dependabot',
-    '.devcontainer',
-    '.eslintplugin',
-    '.github',
-    '.husky',
-    '.idea',
-    '.next',
-    '.nvim',
-    '.venv',
-    '.vscode',
-    '.yarn',
+    '(^|/)\\.[^/]+($|/)', // File starting with a dot
     '__pycache__',
     '_deps',
     'appimage',
@@ -103,7 +91,7 @@ export const blacklistedFilter = [
     'debug',
     'developer',
     'docker',
-    'docs_src',
+    'docs',
     'example',
     'image',
     'img',
@@ -121,4 +109,7 @@ export const blacklistedFilter = [
     'vendor',
     'video',
     'workflows',
+    'locale',
+    'conf',
+    'tutorial',
 ]
