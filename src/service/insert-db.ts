@@ -6,7 +6,7 @@ import { fetchGithubRepoFile, fetchGithubRepoDetails, fetchGithubRepoTree, RepoT
 import { whitelistedFilter, whitelistedFile, blacklistedFilter, blacklistedFolder, blacklistedFiles, blacklistedFile }  from '@/github/filterfile'
 import { FolderProcessor, CodeProcessor } from '@/agent/structured-output/index'
 import { LLMProvider } from '@/llm/llm-provider'
-import { FolderSummaryOutput } from '@/agent/structured-output/index'
+import { FolderSummaryOutput, CodeSummaryOutput } from '@/agent/structured-output/index'
 
 // The maximum allowance of words to feed LLM
 const PROCESSOR_MAX_WORD_LIMIT = 45000
@@ -106,7 +106,22 @@ export class InsertRepoService {
                 console.error(`No content for file ${file.file}`)
                 return null
             }
-            const aiSummary = await this.codeProcessor.generate(file.content, {...this.repoFileInfo!, path: file.file}, PROCESSOR_MAX_WORD_LIMIT)
+            let aiSummary: CodeSummaryOutput | null = null
+            let wordDeduction = 0
+            while(!aiSummary && PROCESSOR_MAX_WORD_LIMIT - wordDeduction > 0) {
+                try {
+                    aiSummary = await this.codeProcessor.generate(file.content, {...this.repoFileInfo!, path: file.file})
+                } catch (error) {
+                    console.warn(`Failed to generate AI summary for file ${file.file} with word limit ${PROCESSOR_MAX_WORD_LIMIT - wordDeduction}`)
+                    console.log(file.content.length)
+                    wordDeduction += 2000
+                    file.content = file.content.slice(0, file.content.length - wordDeduction)
+                }
+            }
+            if(!aiSummary) {
+                console.error(`Failed to generate AI summary for file ${file.file}`)
+                return null
+            }
             return { file: file.file, content: file.content, summary: aiSummary!.summary, usage: aiSummary!.usage }
         });
 
