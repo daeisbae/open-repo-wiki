@@ -3,10 +3,12 @@ import Form from 'next/form';
 import React, { useState } from 'react';
 import { addRepository } from '@/app/add/repositories/addrepository';
 
-export default function AddRepository() {
+export default function Page() {
   const [response, setResponse] = useState(null);
 
-  const handleSubmit = async (formData: React.FormData) => {
+  const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    const formData = new FormData(event.currentTarget);
     const result = await addRepository(formData);
     setResponse(result);
   };
@@ -14,7 +16,7 @@ export default function AddRepository() {
   return (
     <div className="flex flex-col items-center justify-center w-full h-full overflow-y-hidden">
       <h1 className="font-bold text-lg sm:text-2xl md:text-3xl pb-4">Add Repository</h1>
-      <Form action={handleSubmit} className="flex flex-col gap-4 w-full max-w-md p-6 border rounded-lg shadow-sm">
+      <Form onSubmit={handleSubmit} className="flex flex-col gap-4 w-full max-w-md p-6 border rounded-lg shadow-sm">
         <div className="flex flex-col gap-4">
           <input
             className="p-4 border rounded-md text-center"

@@ -1,9 +1,9 @@
 'use server';
 
 import InsertQueue from "@/service/insert-queue";
-import React from "react";
 
-export async function addRepository(formData: React.FormData) {
+
+export async function addRepository(formData: FormData) {
   const owner: string = formData.get('owner') as string;
   const repo: string = formData.get('repo') as string;
 
@@ -11,6 +11,6 @@ export async function addRepository(formData: React.FormData) {
     return { success: false, error: 'Both owner and repository names are required.' };
   }
 
-  const insertRepo = InsertQueue.getInstance()
+  const insertRepo = await InsertQueue.getInstance()
   return await insertRepo.add({owner, repo});
 }
