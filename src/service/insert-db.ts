@@ -7,9 +7,7 @@ import { whitelistedFilter, whitelistedFile, blacklistedFilter, blacklistedFolde
 import { FolderProcessor, CodeProcessor } from '@/agent/structured-output/index'
 import { LLMProvider } from '@/llm/llm-provider'
 import { FolderSummaryOutput, CodeSummaryOutput } from '@/agent/structured-output/index'
-
-// The maximum allowance of words to feed LLM
-const PROCESSOR_MAX_WORD_LIMIT = 45000
+import { TokenProcessingConfig } from '@/service/config'
 
 interface RepoFileInfo {
     repoOwner: string
@@ -108,19 +106,37 @@ export class InsertRepoService {
             }
             let aiSummary: CodeSummaryOutput | null = null
             let wordDeduction = 0
-            while(!aiSummary && PROCESSOR_MAX_WORD_LIMIT - wordDeduction > 0) {
-                try {
-                    aiSummary = await this.codeProcessor.generate(file.content, {...this.repoFileInfo!, path: file.file})
-                } catch (error) {
-                    console.warn(`Failed to generate AI summary for file ${file.file} with word limit ${PROCESSOR_MAX_WORD_LIMIT - wordDeduction}`)
-                    console.log(file.content.length)
-                    wordDeduction += 2000
-                    file.content = file.content.slice(0, file.content.length - wordDeduction)
-                }
+            let reducedContent = file.content
+            let retries = 0
+
+            while (
+              !aiSummary &&
+              retries++ < TokenProcessingConfig.maxRetries &&
+              TokenProcessingConfig.characterLimit - wordDeduction > 0
+            ) {
+              try {
+                reducedContent = file.content.slice(
+                  0,
+                  TokenProcessingConfig.characterLimit - wordDeduction
+                )
+                aiSummary = await this.codeProcessor.generate(
+                  reducedContent,
+                  { ...this.repoFileInfo!, path: file.file }
+                )
+              } catch (error) {
+                console.warn(
+                  `Failed to generate AI summary for file ${file.file} with word limit ${
+                    TokenProcessingConfig.characterLimit - wordDeduction
+                  }, content length ${reducedContent.length}`
+                )
+              } finally {
+                wordDeduction += TokenProcessingConfig.reduceCharPerRetry
+              }
             }
-            if(!aiSummary) {
-                console.error(`Failed to generate AI summary for file ${file.file}`)
-                return null
+
+            if (!aiSummary) {
+              console.error(`Failed to generate AI summary for file ${file.file}`)
+              return null
             }
             return { file: file.file, content: file.content, summary: aiSummary!.summary, usage: aiSummary!.usage }
         });
@@ -140,7 +156,7 @@ export class InsertRepoService {
 
             const fileSummary = `Summary of file ${insertedFile.name}:\n${insertedFile.ai_summary}\n\n`
             summaries.push(fileSummary)
-        };
+        }
 
         for(const subfolder of allowedFolders) {
             console.log(`Traversing and Inserting folder ${subfolder.path}`)
@@ -150,24 +166,36 @@ export class InsertRepoService {
         }
 
         if(!summaries.length) {
-            console.error(`No summaries generated for folder ${folderData.path}`)
+            console.error(`No summaries generated for folder ${folderData.path || '/'}`)
             await this.folder.delete(folderData.folder_id)
             return null
         }
 
         let aiSummary: FolderSummaryOutput | null = null;
+        let totalContentInStr = summaries.join('\n\n')
+        let retries = 0
         let summaryDeduction = 0
-        while(!aiSummary && PROCESSOR_MAX_WORD_LIMIT - summaryDeduction > 0) {
-            try {
+        while(summaries && !aiSummary && TokenProcessingConfig.characterLimit - summaryDeduction > 0 && retries++ < TokenProcessingConfig.maxRetries) {
+            try { 
+                let reducedContent = totalContentInStr.slice(0, TokenProcessingConfig.characterLimit - summaryDeduction)
+                let summariesCombined = totalContentInStr
+                while(reducedContent.length < summariesCombined.length && summaries.length > 0) {
+                    // To remove the file summary first
+                    summaries.shift()
+                    summariesCombined = summaries.join('\n\n')
+                }
+                if(summaries.length === 0) {
+                    console.error(`No summaries left for folder ${folderData.path}`)
+                    break
+                }
                 aiSummary = await this.folderProcessor.generate(summaries, {
                     ...this.repoFileInfo!,
                     path: folderData.path
-                }, PROCESSOR_MAX_WORD_LIMIT - summaryDeduction)
+                })
             } catch (error) {
                 console.warn(`Failed to generate AI summary for folder ${folderData.path}`)
-                console.log("Retrying...")
-                summaryDeduction += 2000
             }
+            summaryDeduction += TokenProcessingConfig.reduceCharPerRetry
         }
 
         if(!aiSummary) {

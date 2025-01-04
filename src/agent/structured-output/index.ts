@@ -150,20 +150,11 @@ export class FolderProcessor extends BaseProcessor {
 
     /**
      * Process the given code string
-     * @param {Array<string> folder - summaries of files by LLMs
+     * @param {Array<string>} folder - summaries of files by LLMs
      * @param {RepoInfo} repoInfo - Information about the repository
-     * @param {number} wordLimit - Maximum length of summaries to process
      * @returns Processed and parsed JSON object defined in schema factory
      */
-    async generate(folder: string[], repoInfo: RepoInfo, summariesLimit: number): Promise<FolderSummaryOutput | null> {
-        let numWords = folder.join(' ').split(' ').length
-        // Remove summaries until it fits the limit
-        if(numWords > summariesLimit) {
-            while(numWords > summariesLimit) {
-                folder.pop()
-                numWords = folder.join(' ').split(' ').length
-            }
-        }
+    async generate(folder: string[], repoInfo: RepoInfo): Promise<FolderSummaryOutput | null> {
 
         const prompt = await this.promptGenerator.generate(
             {
