@@ -14,17 +14,11 @@ body {
 
 :root {
   --heading-top-padding: 20px;
-  --h1-bottom-padding: 20px;
-}
-
-h1 + hr {
-  padding-bottom: 20px;
 }
 
 h1 {
   font-size: 32px;
   font-weight: bold;
-  padding-bottom: var(--h1-bottom-padding);
 }
 
 h2 {
@@ -53,14 +47,19 @@ h5 {
 
 h6 {
   padding-top: var(--heading-top-padding);
-  font-size: 20px;
+  font-size: 16px;
   font-weight: bold;
 }
 
 ul {
   list-style-type: disc;
   padding-left: 1em;
-  padding-top: 10px;
+  padding-top: 0;
+  padding-bottom: 10px;
+}
+
+hr {
+  padding-top: 0;
   padding-bottom: 10px;
 }
 
@@ -74,7 +73,6 @@ a > code {
 @media screen and (max-width: 768px) {
   h1 {
     font-size: 24px;
-    padding-bottom: 0;
   }
 
   h2 {
@@ -94,12 +92,15 @@ a > code {
   }
 
   h6 {
-    font-size: 18px;
+    font-size: 16px;
   }
 
   ul {
-    padding-top: 6px;
     padding-bottom:6px;
+  }
+
+  hr {
+    padding-bottom: 6px;
   }
 
   a > code {
