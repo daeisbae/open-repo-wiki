@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import InsertQueue from '@/service/insert-queue';
+import { GetRepositoryService } from '@/service/get-db';
 
 export async function POST(request: NextRequest) {
   try {
@@ -34,4 +35,16 @@ export async function POST(request: NextRequest) {
       { status: 500 }
     );
   }
+}
+
+export async function GET(request: NextRequest) {
+  const repoService = new GetRepositoryService();
+  const repos = await repoService.getAllRepository();
+  if (!repos) {
+    return NextResponse.json(
+      { success: false, error: 'No repositories found' },
+      { status: 404 }
+    );
+  }
+  return NextResponse.json(repos);
 }

@@ -18,25 +18,25 @@ interface AddRepositoryQueueResult {
 }
 
 export default class InsertQueue {
-	private _queue: InsertItem[] = [];
-	private _isProcessing: boolean = false;
-	private _repoService: InsertRepoService;
-	private _processed: InsertItem[] = [];
-	private static _instance?: InsertQueue;
-	private _rateLimitBeforeStop: number = 500;
-	private _maxQueueSize: number = 10;
-	private _repository: Repository;
+    private _queue: InsertItem[] = []
+    private _isProcessing: boolean = false
+    private _repoService: InsertRepoService
+    private _processingItem: InsertItem | null = null
+    private static _instance?: InsertQueue
+    private _rateLimitBeforeStop: number = 500
+    private _maxQueueSize: number = 10
+    private _repository: Repository
 
-	private constructor() {
-		this._queue = [];
-		this._isProcessing = false;
-		this._processed = [];
-		const llmConfig = new LLMConfig(1, 0.95, 40, 8192);
-		this._repoService = new InsertRepoService(
-			LLMFactory.createProvider(llmConfig),
-		);
-		this._repository = new Repository();
-	}
+    private constructor() {
+        this._queue = []
+        this._isProcessing = false
+        this._processingItem = null
+        const llmConfig = new LLMConfig(1, 0.95, 40, 8192)
+        this._repoService = new InsertRepoService(
+            LLMFactory.createProvider(llmConfig)
+        )
+        this._repository = new Repository()
+    }
 
 	public static getInstance() {
 		if (!this._instance) {
@@ -95,19 +95,12 @@ export default class InsertQueue {
 		};
 	}
 
-	/**
-	 * Returns the finished queue
-	 */
-	get processed(): InsertItem[] {
-		return this._processed;
-	}
-
-	/**
-	 * Clears the processed queue
-	 */
-	clearProcessed(): void {
-		this._processed = [];
-	}
+    /**
+     * Returns the current queue item
+     */
+    get processingItem(): InsertItem | null {
+        return this._processingItem
+    }
 
 	/**
 	 * Processes the queue, if rate limit is not reached
@@ -132,29 +125,26 @@ export default class InsertQueue {
 		this._isProcessing = false;
 	}
 
-	/**
-	 * Processes an item from the queue
-	 */
-	private async _processItem(item: InsertItem): Promise<RepositoryData | null> {
-		console.log(`Processing item: ${item.owner}/${item.repo}`);
-		let result: RepositoryData | null = null;
-		try {
-			result = await this._repoService.insertRepository(item.owner, item.repo);
-			console.log(`Finished processing item: ${item.owner}/${item.repo}`);
-		} catch (error) {
-			console.error(
-				`Failed to process item: ${item.owner}/${item.repo}`,
-				error,
-			);
-		}
+    /**
+     * Processes an item from the queue
+     */
+    private async _processItem(
+        item: InsertItem
+    ): Promise<RepositoryData | null> {
+        console.log(`Processing item: ${item.owner}/${item.repo}`)
+        this._processingItem = item
+        let result: RepositoryData | null = null
+        try {
+            result = await this._repoService.insertRepository(
+                item.owner,
+                item.repo
+            )
+            console.log(`Finished processing item: ${item.owner}/${item.repo}`)
+        } catch (error) {
+            console.error(`Failed to process item: ${item.owner}/${item.repo}`, error)
+        }
 
-		return result;
-	}
-
-	/**
-	 * Returns the current queue
-	 */
-	get queue(): InsertItem[] {
-		return this._queue;
-	}
+        this._processingItem = null
+        return result
+    }
 }
