@@ -2,6 +2,7 @@ import { Repository, RepositoryData } from '@/db/models/repository'
 import { Branch, BranchData } from '@/db/models/branch'
 import { Folder, FolderData } from '@/db/models/folder'
 import { File, FileData } from '@/db/models/file'
+import InsertQueue from './insert-queue'
 
 export interface FullFolder extends FolderData {
     files: FileData[]
@@ -12,6 +13,24 @@ export interface FullRepository {
     repository: RepositoryData
     branch: BranchData | null
     folders: FullFolder[]
+}
+
+export class GetRepositoryService {
+    private repository
+    private insertQueue
+
+    constructor() {
+        this.repository = new Repository()
+        this.insertQueue = InsertQueue.getInstance()
+    }
+
+    async getAllRepository(): Promise<RepositoryData[] | null> {
+        const allRepositories = await this.repository.selectAll()
+        const processingItem = this.insertQueue.processingItem
+        if(!allRepositories) return null
+        if(!processingItem) return allRepositories
+        return allRepositories.filter((repo) => repo.owner !== processingItem.owner && repo.repo !== processingItem.repo)
+    }
 }
 
 export class FetchRepoService {
