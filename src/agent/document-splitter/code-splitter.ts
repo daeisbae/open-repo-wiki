@@ -39,6 +39,8 @@ export default class CodeSplitter {
             'jsx': Language.JS,
             'ts': Language.JS,
             'tsx': Language.JS,
+            'mjs': Language.JS,
+            'cjs': Language.JS,
             'go': Language.GO,
             'rb': Language.RUBY,
             'rs': Language.RUST,
