@@ -4,12 +4,14 @@ import React, { useState } from 'react';
 import { addRepository } from '@/app/add/repositories/addrepository';
 
 export default function Page() {
-  const [response, setResponse] = useState(null);
+  const [response, setResponse] = useState(undefined);
 
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     const formData = new FormData(event.currentTarget);
-    const result = await addRepository(formData);
+    const owner: string = formData.get('owner') as string;
+    const repo: string = formData.get('repo') as string;
+    const result = await addRepository(owner, repo);
     setResponse(result);
   };
 
