@@ -29,7 +29,7 @@ export function RepoCard({ repoInfo }: RepoCardProps) {
             </CardHeader>
             <CardContent>
                 <p className="text-sm text-muted-foreground mb-4">
-                    {repoInfo.descriptions}
+                    {repoInfo.descriptions ?? 'No description provided'}
                 </p>
                 <div className="flex items-center gap-4 mb-4">
                     <div className="flex items-center">
@@ -58,6 +58,7 @@ export function RepoCard({ repoInfo }: RepoCardProps) {
                                 {topic}
                             </Badge>
                         ))}
+                        {repoInfo.topics.length === 0 && <p>No topics found</p>}
                     </div>
                 </div>
             </CardContent>
