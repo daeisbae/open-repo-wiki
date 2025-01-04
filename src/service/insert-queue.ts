@@ -37,7 +37,7 @@ export default class InsertQueue {
         this._repository = new Repository()
     }
 
-    public static async getInstance() {
+    public static getInstance() {
         if (!this._instance) {
             this._instance = new InsertQueue()
         }
