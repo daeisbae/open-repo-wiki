@@ -29,11 +29,9 @@ export default function Navbar() {
 
 	const controlNavbar = () => {
 		if (typeof window !== "undefined") {
-			if (window.scrollY > lastScrollY) {
-				// Scrolling down
+			if (window.scrollY > lastScrollY && window.scrollY > 100) {
 				setIsVisible(false);
 			} else {
-				// Scrolling up
 				setIsVisible(true);
 			}
 			setLastScrollY(window.scrollY);
