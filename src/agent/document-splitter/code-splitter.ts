@@ -45,6 +45,7 @@ export default class CodeSplitter {
             'php': Language.PHP,
             'cpp': Language.CPP,
             'cc': Language.CPP,
+            'c': Language.CPP,
             'cxx': Language.CPP,
             'hpp': Language.CPP,
             'hxx': Language.CPP,
