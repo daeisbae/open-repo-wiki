@@ -21,31 +21,12 @@ export function getSchema(schemaType: SchemaType): ZodSchema {
         /*
 File Schema Example Output:
 {
-  "name": "parser.ts",
-  "path": "src/utils/parser.ts",
+  "usage": "Parses raw input data and transforms it into a structured format.",
   "summary": "This file implements a parser for processing input data. The main entry point is the [`parseInput`](#L15-L30) function, which takes raw data and transforms it into a structured format. Error handling is managed within the [`handleParsingErrors`](#L45-L60) function to ensure robustness.",
-  "relevantCodeBlocks": [
-    {
-      "name": "parseInput",
-      "description": "The primary function responsible for parsing the input data.",
-      "startLine": 15,
-      "endLine": 30
-    },
-    {
-      "name": "handleParsingErrors",
-      "description": "Centralized error handling logic for the parsing process.",
-      "startLine": 45,
-      "endLine": 60
-    }
-  ]
 }
 */
         case SchemaType.FILE:
             return z.object({
-                name: z.string().describe('Name of the file.'),
-                path: z
-                    .string()
-                    .describe('Path to the file within the repository.'),
                 usage: z
                     .string()
                     .describe(
@@ -64,31 +45,13 @@ File Schema Example Output:
         /*
 Folder Schema Example Output:
 {
-  "name": "components",
   "usage": "Contains reusable React components for the application's user interface.",
-  "path": "src/components",
   "summary": "The `components` folder houses the application's building blocks for the user interface. It includes various reusable components like the [`Button`](src/components/Button.tsx) for user interactions and the [`Modal`](src/components/Modal.tsx) for displaying overlay content. The [`Card`](src/components/Card.tsx) component is used throughout the application to present information in a structured manner.",
-  "files": [
-    {
-      "fileName": "Button.tsx",
-      "filePath": "src/components/Button.tsx"
-    },
-    {
-      "fileName": "Modal.tsx",
-      "filePath": "src/components/Modal.tsx"
-    },
-    {
-      "fileName": "Card.tsx",
-      "filePath": "src/components/Card.tsx"
-    },
-  ],
 }
 */
         case SchemaType.FOLDER:
             return z.object({
-                name: z.string().describe('Name of the folder.'),
                 usage: z.string().describe('What the folder is used for. Describe less than 10 words (ex. Server Lifecycle Management, API Utility Functions, etc.)'),
-                path: z.string().describe('Path to the folder.'),
                 summary: z
                     .string()
                     .describe(

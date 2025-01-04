@@ -36,9 +36,7 @@ abstract class BaseProcessor {
     }
 }
 
-export interface CodeSummaryOutput {
-    name: string
-    path: string
+export interface SummaryOutput {
     summary: string
     usage: string
 }
@@ -81,7 +79,7 @@ export class CodeProcessor extends BaseProcessor {
      * @param {RepoInfo} repoInfo - Information about the repository
      * @returns Processed and parsed JSON object defined in schema factory
      */
-    async generate(code: string, repoInfo: RepoInfo): Promise<CodeSummaryOutput | null> {
+    async generate(code: string, repoInfo: RepoInfo): Promise<SummaryOutput | null> {
         const extension = repoInfo.path.split('.').pop()
         if (!extension) {
             console.warn('No extension found in the file path')
@@ -110,13 +108,6 @@ export class CodeProcessor extends BaseProcessor {
 
         return await super.process(prompt)
     }
-}
-
-export interface FolderSummaryOutput {
-    name: string
-    usage: string
-    path: string
-    summary: string
 }
 
 /**
@@ -154,7 +145,7 @@ export class FolderProcessor extends BaseProcessor {
      * @param {RepoInfo} repoInfo - Information about the repository
      * @returns Processed and parsed JSON object defined in schema factory
      */
-    async generate(folder: string[], repoInfo: RepoInfo): Promise<FolderSummaryOutput | null> {
+    async generate(folder: string[], repoInfo: RepoInfo): Promise<SummaryOutput | null> {
 
         const prompt = await this.promptGenerator.generate(
             {
