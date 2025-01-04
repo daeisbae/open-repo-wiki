@@ -1,3 +1,4 @@
+'use server';
 import InsertQueue from "@/service/insert-queue";
 
 export async function addRepository(owner: string, repo: string) {
