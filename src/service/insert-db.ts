@@ -4,9 +4,8 @@ import { Folder, FolderData } from '@/db/models/folder'
 import { File, FileData } from '@/db/models/file'
 import { fetchGithubRepoFile, fetchGithubRepoDetails, fetchGithubRepoTree, RepoTreeResult  } from '@/github/fetchrepo'
 import { whitelistedFilter, whitelistedFile, blacklistedFilter, blacklistedFolder, blacklistedFiles, blacklistedFile }  from '@/github/filterfile'
-import { FolderProcessor, CodeProcessor } from '@/agent/structured-output/index'
+import { FolderProcessor, CodeProcessor, SummaryOutput } from '@/agent/structured-output/index'
 import { LLMProvider } from '@/llm/llm-provider'
-import { FolderSummaryOutput, CodeSummaryOutput } from '@/agent/structured-output/index'
 import { TokenProcessingConfig } from '@/service/config'
 
 interface RepoFileInfo {
@@ -104,7 +103,7 @@ export class InsertRepoService {
                 console.error(`No content for file ${file.file}`)
                 return null
             }
-            let aiSummary: CodeSummaryOutput | null = null
+            let aiSummary: SummaryOutput | null = null
             let wordDeduction = 0
             let reducedContent = file.content
             let retries = 0
@@ -171,7 +170,7 @@ export class InsertRepoService {
             return null
         }
 
-        let aiSummary: FolderSummaryOutput | null = null;
+        let aiSummary: SummaryOutput | null = null;
         let totalContentInStr = summaries.join('\n\n')
         let retries = 0
         let summaryDeduction = 0
