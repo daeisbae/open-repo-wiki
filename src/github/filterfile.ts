@@ -68,22 +68,25 @@ export const whitelistedFilter = [
 export const blacklistedFile = [
     '(^|/)\\.[^/]+($|/)', // File starting with a dot
     '__\\w+', // __init__.py, __main__.py etc
-    'setup.py',
-    'next-env.d.ts',
+    'setup', // setup.py, setup.js
+    'd.ts', // *.d.ts
     'setup',
     'build',
     'entrypoint',
-    'd.ts',
     'config',
+    'sponsor', // sponsers.js
+    'contrib', // contributors.js
     'gulpfile',
     'webpack',
     '.spec', // *.spec.js, *.spec.ts
+    'types',
 ]
 
 export const blacklistedFilter = [
     '(^|/)\\.[^/]+($|/)', // File starting with a dot
-    '__\\w+', // _deps, __pycache__ etc
+    '__\\w+', // __pycache__ etc
     'appimage',
+    'art',
     'assets',
     'audio',
     'bench',
@@ -100,6 +103,7 @@ export const blacklistedFilter = [
     'doc',
     'e2e',
     'example',
+    'extra',
     'esm',
     'image',
     'img',
