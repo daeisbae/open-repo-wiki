@@ -2,6 +2,7 @@
 
 import { MDXRemote } from 'next-mdx-remote'
 import { serialize } from 'next-mdx-remote/serialize'
+import CollapsibleHeader from './CollapsibleHeader'
 import { useState, useEffect } from 'react'
 import React from 'react'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -27,7 +28,7 @@ export function MarkdownContent({ content }: MarkdownContentProps) {
 
     return (
         <div className="prose dark:prose-invert max-w-none">
-            <MDXRemote {...serializedContent} />
+            <MDXRemote {...serializedContent} components={{CollapsibleHeader}} />
         </div>
     )
 }
