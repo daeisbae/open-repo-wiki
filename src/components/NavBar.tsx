@@ -19,6 +19,7 @@ import {
 	SheetContent,
 	SheetTitle,
 	SheetTrigger,
+	SheetClose
 } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import { Menu } from "lucide-react";
@@ -111,18 +112,22 @@ export default function Navbar() {
 						>
 							<SheetTitle>Menu</SheetTitle>
 							<nav className="flex flex-col space-y-4 mt-4">
+							<SheetClose asChild>
 								<Link
 									href="/get/repositories"
 									className="text-lg font-medium hover:text-primary transition-colors"
 								>
 									Repo List
 								</Link>
+								</SheetClose>
+								<SheetClose asChild>
 								<Link
 									href="/add/repositories"
 									className="text-lg font-medium hover:text-primary transition-colors"
 								>
 									Add Repo
 								</Link>
+								</SheetClose>
 							</nav>
 						</SheetContent>
 					</Sheet>
