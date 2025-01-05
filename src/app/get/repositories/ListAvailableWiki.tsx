@@ -1,6 +1,7 @@
 'use client';
 
-import React, {useEffect, useState} from "react";
+import React, {useEffect, useState, Suspense} from "react";
+import Loading from "@/app/get/repositories/loading";
 import {
 	Card,
 	CardContent,
@@ -12,7 +13,7 @@ import Link from "next/link";
 import { GitFork, Star } from "lucide-react";
 
 export default function ListAvailableWiki() {
-    const [repositories, setRepositories] = React.useState([])
+    const [repositories, setRepositories] = useState([])
 
 	 useEffect(() => {
         const fetchRepos = async () => {
@@ -21,15 +22,23 @@ export default function ListAvailableWiki() {
                 return
             }
             const data = await response.json()
-            console.log(data)
             setRepositories(data)
         }
         fetchRepos()
     }, [])
 
+   return (
+    <Suspense fallback={<Loading />}>
+    <ListWiki repositories={repositories} />
+   </Suspense>
+   )
+}
+
+export function ListWiki({ repositories }) {
+
 	return (
 		<div>
-			{repositories && repositories.length > 0 ? (
+			{repositories && repositories.length > 0 && (
 				repositories.map((repo) => (
 					<div key={repo.url} className="p-1">
 						<Link href={`/${repo.owner}/${repo.repo}`}>
@@ -55,12 +64,7 @@ export default function ListAvailableWiki() {
 							</Card>
 						</Link>
 					</div>
-				))
-			) : (
-				<div className="p-4 text-center">
-					<p>No repositories available at the moment</p>
-				</div>
-			)}
+				)))}
 		</div>
 	);
 }

@@ -80,6 +80,7 @@ export const blacklistedFile = [
     'contrib', // contributors.js
     'gulpfile',
     'webpack',
+    '.min.js',
     '.spec', // *.spec.js, *.spec.ts
     'types',
 ]
@@ -123,6 +124,7 @@ export const blacklistedFilter = [
     'target',
     'temp',
     'tool',
+    'test',
     'third_party',
     'tmp',
     'vendor',
