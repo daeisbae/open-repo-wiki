@@ -89,6 +89,7 @@ export const blacklistedFilter = [
     '(^|/)\\.[^/]+($|/)', // File starting with a dot
     '__\\w+', // __pycache__ etc
     'appimage',
+    'appearance',
     'art',
     'assets',
     'audio',
@@ -121,6 +122,7 @@ export const blacklistedFilter = [
     'setup',
     'static',
     'support',
+    'screenshot',
     'target',
     'temp',
     'tool',
