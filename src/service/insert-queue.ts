@@ -22,9 +22,10 @@ export default class InsertQueue {
     private _isProcessing: boolean = false
     private _repoService: InsertRepoService
     private _processingItem: InsertItem | null = null
+	private _processingTime: string | null = null
     private static _instance?: InsertQueue
     private _rateLimitBeforeStop: number = 500
-    private _maxQueueSize: number = 10
+    private _maxQueueSize: number = 25
     private _repository: Repository
 
     private constructor() {
@@ -43,6 +44,10 @@ export default class InsertQueue {
 			this._instance = new InsertQueue();
 		}
 		return this._instance;
+	}
+
+	get queue(): InsertItem[] {
+		return this._queue;
 	}
 
 	/**
@@ -103,6 +108,13 @@ export default class InsertQueue {
     }
 
 	/**
+	 * Returns the current processing time in UTC timezone
+	 */
+	get processingTime(): string | null {
+		return this._processingTime
+	}
+
+	/**
 	 * Processes the queue, if rate limit is not reached
 	 * if rate limit is reached, it will wait for the reset time
 	 */
@@ -132,6 +144,7 @@ export default class InsertQueue {
         item: InsertItem
     ): Promise<RepositoryData | null> {
         console.log(`Processing item: ${item.owner}/${item.repo}`)
+		this._processingTime = new Date().toISOString()
         this._processingItem = item
         let result: RepositoryData | null = null
         try {
@@ -145,6 +158,7 @@ export default class InsertQueue {
         }
 
         this._processingItem = null
+		this._processingTime = null
         return result
     }
 }
