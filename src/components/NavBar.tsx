@@ -80,6 +80,15 @@ export default function Navbar() {
 								</NavigationMenuLink>
 							</Link>
 						</NavigationMenuItem>
+						<NavigationMenuItem>
+							<Link href="/get/queue" legacyBehavior passHref>
+								<NavigationMenuLink
+									className={cn(navigationMenuTriggerStyle(), "w-28")}
+								>
+									Queue
+								</NavigationMenuLink>
+							</Link>
+						</NavigationMenuItem>
 					</NavigationMenuList>
 				</NavigationMenu>
 
@@ -126,6 +135,11 @@ export default function Navbar() {
 									className="text-lg font-medium hover:text-primary transition-colors"
 								>
 									Add Repo
+								</Link>
+								</SheetClose>
+								<SheetClose asChild>
+								<Link href="/get/queue" className="text-lg font-medium hover:text-primary transition-colors">
+									Queue
 								</Link>
 								</SheetClose>
 							</nav>
