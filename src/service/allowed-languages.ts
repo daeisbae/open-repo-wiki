@@ -10,4 +10,5 @@ export const ALLOED_LANGUAGES = [
     "Ruby",
     "PHP",
     "Scala",
+    "HTML",
 ]; // I didn't include markdown here because it's not a programming language
