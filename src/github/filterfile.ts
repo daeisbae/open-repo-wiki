@@ -80,6 +80,7 @@ export const blacklistedFile = [
     'contrib', // contributors.js
     'gulpfile',
     'webpack',
+    '.min.js',
     '.spec', // *.spec.js, *.spec.ts
     'types',
 ]
@@ -88,6 +89,7 @@ export const blacklistedFilter = [
     '(^|/)\\.[^/]+($|/)', // File starting with a dot
     '__\\w+', // __pycache__ etc
     'appimage',
+    'appearance',
     'art',
     'assets',
     'audio',
@@ -120,9 +122,11 @@ export const blacklistedFilter = [
     'setup',
     'static',
     'support',
+    'screenshot',
     'target',
     'temp',
     'tool',
+    'test',
     'third_party',
     'tmp',
     'vendor',

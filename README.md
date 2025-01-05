@@ -23,7 +23,7 @@
 ### Configuration
 
 1. Copy `.env.example` to `.env`
-2. Configure all the variables given (Follow the instructions)
+2. Configure all the variables given in `.env`
 3. Install all the dependencies (`npm install`)
 4. Build the server (`npm run build`)
 5. Run (`npm start`)
