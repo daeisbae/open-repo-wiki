@@ -72,7 +72,9 @@ export const blacklistedFile = [
     'd.ts', // *.d.ts
     'setup',
     'build',
+    'demo',
     'entrypoint',
+    'example',
     'config',
     'sponsor', // sponsers.js
     'contrib', // contributors.js
@@ -98,6 +100,7 @@ export const blacklistedFilter = [
     'cmake',
     'contrib',
     'debug',
+    'demo',
     'developer',
     'docker',
     'doc',
