@@ -28,6 +28,22 @@
 4. Build the server (`npm run build`)
 5. Run (`npm start`)
 
+#### Ollama Configuration Guide
+
+- It's recommended if you can run bigger LLM than 14b parameter.
+- You do not need to provide the API KEY
+- Set LLM_PROVIDER to Ollama (It is going to connect to default ollama endpoint)
+- Set LLM_MODELNAME to the model name you can see from Ollama using the command `ollama ls`
+- It is recommended to set TOKEN_PROCESSING_CHARACTER_LIMIT between 10000-20000 (Approx 300-600 lines of code) if you are using low param LLM (ex. 8b, 14b)
+
+**Example:**
+
+```
+LLM_PROVIDER=ollama
+LLM_APIKEY=
+LLM_MODELNAME=qwen2.5:14b
+```
+
 ### Additional Information
 
 > [!CAUTION]
