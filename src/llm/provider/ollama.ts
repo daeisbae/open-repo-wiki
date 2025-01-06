@@ -12,7 +12,7 @@ export class OllamaProvider extends LLMProvider {
     this.llm = new ChatOllama({
         model: modelName,
         temperature: llmconfig.temperature,
-        // format: 'json',
+        // format: 'json', // Forcing JSON output degraded the quality of the responses
         topP: llmconfig.topP,
         topK: llmconfig.topK,
     });
