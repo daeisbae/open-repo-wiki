@@ -18,14 +18,17 @@ export default function Page() {
             setIsLoading(true);
             const response = await fetch("/api/queue");
             if (response.ok) {
-                const { body } = await response.json();
-                setQueue(body.queue || []);
-                setProcessing(body.processing || null);
-                setProcessingTime(body.processingTime || "");
+                const data = await response.json();
+                setQueue(data.queue || []);
+                setProcessing(data.current || null);
+                setProcessingTime(data.time || "");
             }
             setIsLoading(false);
         };
         fetchData();
+        const interval = setInterval(fetchData, 10000);
+        return () => clearInterval(interval);
+        
     }, []);
 
     if (isLoading) {

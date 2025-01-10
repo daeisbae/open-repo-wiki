@@ -1,0 +1,89 @@
+services:
+  postgres:
+    image: postgres:16
+    restart: always
+    environment:
+      POSTGRES_DB: ${DB_NAME}
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER} -d ${DB_NAME}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - app-network
+
+  fastapi:
+    build: ./backend
+    restart: always
+    environment:
+      DB_HOST: postgres
+      DB_PORT: ${DB_PORT}
+      DB_NAME: ${DB_NAME}
+      DB_USER: ${DB_USER}
+      DB_PASSWORD: ${DB_PASSWORD}
+      
+      # Certificates for DB connection
+      DB_CERTIFICATE_LINK: ${DB_CERTIFICATE_LINK}
+      DB_CERTIFICATE_REGION: ${DB_CERTIFICATE_REGION}
+      DB_CERTIFICATE_BUCKET_NAME: ${DB_CERTIFICATE_BUCKET_NAME}
+      DB_CERTIFICATE_FILE: ${DB_CERTIFICATE_FILE}
+      DB_CERTIFICATE_ACCESS_KEY_ID: ${DB_CERTIFICATE_ACCESS_KEY_ID}
+      DB_CERTIFICATE_SECRET_ACCESS_KEY: ${DB_CERTIFICATE_SECRET_ACCESS_KEY}
+
+      GITHUB_TOKEN: ${GITHUB_TOKEN}
+      LLM_PROVIDER: ${LLM_PROVIDER}
+      LLM_APIKEY: ${LLM_APIKEY}
+      LLM_MODELNAME: ${LLM_MODELNAME}
+
+      TOKEN_PROCESSING_CHARACTER_LIMIT: ${TOKEN_PROCESSING_CHARACTER_LIMIT:-30000}
+      TOKEN_PROCESSING_MAX_RETRIES: ${TOKEN_PROCESSING_MAX_RETRIES:-3}
+      TOKEN_PROCESSING_REDUCE_CHAR_PER_RETRY: ${TOKEN_PROCESSING_REDUCE_CHAR_PER_RETRY:-3000}
+    ports:
+      - "8080:8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - app-network
+
+  nextjs:
+    build: .
+    restart: always
+    environment:
+      DB_HOST: postgres
+      DB_PORT: ${DB_PORT}
+      DB_NAME: ${DB_NAME}
+      DB_USER: ${DB_USER}
+      DB_PASSWORD: ${DB_PASSWORD}
+
+      # Certificates for DB connection
+      DB_CERTIFICATE_LINK: ${DB_CERTIFICATE_LINK}
+      DB_CERTIFICATE_REGION: ${DB_CERTIFICATE_REGION}
+      DB_CERTIFICATE_BUCKET_NAME: ${DB_CERTIFICATE_BUCKET_NAME}
+      DB_CERTIFICATE_FILE: ${DB_CERTIFICATE_FILE}
+      DB_CERTIFICATE_ACCESS_KEY_ID: ${DB_CERTIFICATE_ACCESS_KEY_ID}
+      DB_CERTIFICATE_SECRET_ACCESS_KEY: ${DB_CERTIFICATE_SECRET_ACCESS_KEY}
+
+      GITHUB_TOKEN: ${GITHUB_TOKEN}
+
+      API_ENDPOINT: ${NEXT_PUBLIC_API_ENDPOINT}
+    ports:
+      - "3000:3000"
+    depends_on:
+      fastapi:
+        condition: service_started
+    networks:
+      - app-network
+
+volumes:
+  postgres_data:
+
+networks:
+  app-network:
+    driver: bridge

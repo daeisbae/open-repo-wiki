@@ -1,0 +1,11 @@
+langchain
+fastapi
+uvicorn
+pydantic
+openai
+python-dotenv
+aiohttp
+boto3
+asyncpg
+loguru
+psycopg[binary]

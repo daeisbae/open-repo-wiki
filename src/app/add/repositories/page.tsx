@@ -13,7 +13,7 @@ export default function Page() {
       };
   
       try {
-        const res = await fetch('/api/repository', {
+        const res = await fetch("/api/repository", {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
