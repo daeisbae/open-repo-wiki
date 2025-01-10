@@ -1,0 +1,18 @@
+ALLOWED_LANGUAGES = [
+    "JavaScript",
+    "TypeScript",
+    "Python",
+    "C",
+    "C++",
+    "Java",
+    "Go",
+    "Rust",
+    "Ruby",
+    "PHP",
+    "Scala",
+    "HTML",
+    "Haskell",
+    "Swift",
+    "C#",
+    "Lua",
+];

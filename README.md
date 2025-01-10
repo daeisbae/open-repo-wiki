@@ -19,8 +19,15 @@
 - PostgreSQL (For storing the summarized repository information)
 - Github API Key (To get more quota requesting the repository data)
 - Amazon S3 (You can ignore the parameters if you are going to use it locally. You need to use certificate for your Database if you are going to host it.)
+- Docker (If you are hosting locally)
 
-### Configuration
+### Configuration (Local)
+
+1. Copy `.env.example` to `.env`
+2. Configure all the variables given in `.env`
+3. Run `docker compose up` or `docker compose up -d` to hide the output
+
+### Configuration (Cloud)
 
 1. Create PostgreSQL instance
 2. Copy `.env.example` to `.env`
@@ -29,6 +36,7 @@
 5. Initialize the database by typing (`npm run db:init`). If this does not work, you can install [database manager GUI](https://github.com/beekeeper-studio/beekeeper-studio), connect to the database then manually execute SQL [src/db/migrations/create_tables.sql](https://github.com/daeisbae/open-repo-wiki/blob/main/src/db/migrations/create_tables.sql)
 6. Build the server (`npm run build`)
 7. Run (`npm start`)
+
 
 #### Ollama Configuration Guide
 
