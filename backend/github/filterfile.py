@@ -26,6 +26,7 @@ whitelisted_filter = [
     r'\.ts$',
     r'\.java$',
     r'\.scala$',
+    r'\.kt$',
     r'README\.md',
     r'\.cpp$',
     r'\.cc$',
