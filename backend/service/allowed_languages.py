@@ -10,6 +10,7 @@ ALLOWED_LANGUAGES = [
     "Ruby",
     "PHP",
     "Scala",
+    "Kotlin",
     "HTML",
     "Haskell",
     "Swift",
