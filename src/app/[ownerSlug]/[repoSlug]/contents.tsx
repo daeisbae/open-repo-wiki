@@ -1,7 +1,6 @@
 import { RepoCard } from '@/components/RepoCard';
 import { MarkdownContent } from '@/components/MarkdownContent';
 import { formatToMarkdownSections } from '@/app/[ownerSlug]/[repoSlug]/formatter';
-import Loading from '@/app/[ownerSlug]/[repoSlug]/loading';
 import { notFound } from 'next/navigation';
 import { FetchRepoService } from '@/service/get-db';
 

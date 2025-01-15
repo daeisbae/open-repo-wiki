@@ -1,8 +1,12 @@
 'use client';
 import React, { useState } from 'react';
+import { useSearchParams } from 'next/navigation'
 
 export default function Page() {
     const [response, setResponse] = useState(null);
+    const searchParams = useSearchParams()
+    const [owner, setOwner] = useState(searchParams.get('owner') || '');
+    const [repo, setRepo] = useState(searchParams.get('repo') || '');
   
     async function handleSubmit(event) {
       event.preventDefault();
@@ -27,6 +31,8 @@ export default function Page() {
         console.error(error);
         setResponse({ success: false, error: 'An error occurred while adding the repository.' });
       }
+      setOwner('')
+      setRepo('')
     }
   
 
@@ -40,6 +46,8 @@ export default function Page() {
             type="text"
             name="owner"
             placeholder="GitHub Owner"
+            value={owner}
+            onChange={(e) => {setOwner(e.target.value)}}
             required
           />
           <input
@@ -47,6 +55,8 @@ export default function Page() {
             type="text"
             name="repo"
             placeholder="Repository Name"
+            value={repo}
+            onChange={(e) => {setRepo(e.target.value)}}
             required
           />
         </div>
