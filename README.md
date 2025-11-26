@@ -16,7 +16,6 @@
 ### Requirements
 
 - Either Google AI Studio or Deepseek API Key
-- PostgreSQL (For storing the summarized repository information)
 - Github API Key (To get more quota requesting the repository data)
 - Amazon S3 (You can ignore the parameters if you are going to use it locally. You need to use certificate for your Database if you are going to host it.)
 - Docker (If you are hosting locally)
