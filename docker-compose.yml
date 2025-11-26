@@ -26,17 +26,17 @@ services:
     networks:
       - app-network
 
-  backend:
-    build: ./backend
+  app:
+    build: ./src
     restart: always
     command: bash -c "python manage.py makemigrations wiki_app && python manage.py migrate && python manage.py runserver 0.0.0.0:8000"
     develop:
       watch:
         - action: sync
-          path: ./backend
+          path: ./src
           target: /app
         - action: rebuild
-          path: ./backend/requirements.txt
+          path: ./src/requirements.txt
     environment:
       DB_HOST: postgres
       DB_PORT: ${DB_PORT:-5432}
@@ -74,16 +74,16 @@ services:
       - app-network
 
   celery_worker:
-    build: ./backend
+    build: ./src
     restart: always
     command: celery -A core_config worker -l info
     develop:
       watch:
         - action: sync+restart
-          path: ./backend
+          path: ./src
           target: /app
         - action: rebuild
-          path: ./backend/requirements.txt
+          path: ./src/requirements.txt
     environment:
       DB_HOST: postgres
       DB_PORT: ${DB_PORT:-5432}
@@ -111,7 +111,7 @@ services:
       CELERY_BROKER_URL: redis://redis:6379/0
       CELERY_RESULT_BACKEND: redis://redis:6379/0
     depends_on:
-      backend:
+      app:
         condition: service_started
       redis:
         condition: service_started

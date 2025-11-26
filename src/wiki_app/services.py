@@ -1,4 +1,6 @@
 import asyncio
+import aiohttp
+import time
 from typing import Optional, List, Dict
 from asgiref.sync import sync_to_async
 from django.db import transaction
@@ -20,7 +22,6 @@ class InsertRepoService:
         self.folderPathMap: Dict[str, int] = {}
         self.repoFileInfo: Optional[Dict[str, str]] = None
         self.semaphore = asyncio.Semaphore(10)  # Limit concurrent GitHub requests
-        self.llm_semaphore = asyncio.Semaphore(10) # Limit concurrent LLM requests
 
     async def insertRepository(self, owner: str, repo: str):
         # Create initial repository record to track status
@@ -89,7 +90,9 @@ class InsertRepoService:
         }
 
         await update_status(f"Step 4: Fetching entire repo tree for {owner}/{repo} @ {repo_details.sha}...")
+        start_time = time.time()
         fullTree = await fetch_github_repo_tree(owner, repo, repo_details.sha)
+        logger.info(f"Fetched repo tree in {time.time() - start_time:.2f}s")
 
         await update_status("Step 5: Filtering tree in memory...")
         filteredTree = self._filterTree(fullTree)
@@ -97,13 +100,27 @@ class InsertRepoService:
         await update_status("Step 6: Inserting folder structure into DB...")
         await self._insertFolders(filteredTree, branch, None)
 
-        await update_status("Step 7: Fetching and summarizing files in parallel...")
-        # We need to pass update_status to _fetchAndInsertFiles to get granular updates
-        await self._fetchAndInsertFiles(filteredTree, update_status)
+        await update_status("Step 7: Fetching files and summarizing folders in parallel...")
+        folder_progress = [0]  # Shared counter for folder progress
+        folder_ready_events = {path: asyncio.Event() for path in self.folderPathMap.keys()}
 
-        await update_status("Step 8: Summarizing folders bottom-up...")
-        folder_progress = [0] # Shared counter for folder progress
-        repo_summary = await self._summarizeFolders(filteredTree, update_status, folder_progress, depth=0)
+        folders_start = time.time()
+        folder_summary_task = asyncio.create_task(
+            self._summarizeFolders(
+                filteredTree,
+                update_status,
+                folder_progress,
+                depth=0,
+                folder_ready_events=folder_ready_events
+            )
+        )
+
+        files_start = time.time()
+        await self._fetchAndInsertFiles(filteredTree, update_status, folder_ready_events)
+        logger.info(f"Fetched and inserted files in {time.time() - files_start:.2f}s")
+
+        repo_summary = await folder_summary_task
+        logger.info(f"Summarized folders in {time.time() - folders_start:.2f}s")
 
         # Store repo-level summary on the branch so the UI can detect completion
         if repo_summary:
@@ -146,7 +163,7 @@ class InsertRepoService:
         for subdir in tree.subdirectories:
             await self._insertFolders(subdir, branch, folder)
 
-    async def _fetchAndInsertFiles(self, rootTree: RepoTreeResult, update_status_func=None):
+    async def _fetchAndInsertFiles(self, rootTree: RepoTreeResult, update_status_func=None, folder_ready_events: Optional[Dict[str, asyncio.Event]] = None):
         all_file_paths = []
         def gather_files(t: RepoTreeResult):
             all_file_paths.extend(t.files)
@@ -157,7 +174,11 @@ class InsertRepoService:
         if update_status_func:
             await update_status_func(f"Found {len(all_file_paths)} files to process...")
         
-        async def fetch_content(fp: str):
+        progress_counter = 0
+        progress_lock = asyncio.Lock()
+        total_files = len(all_file_paths)
+
+        async def fetch_content(fp: str, session: aiohttp.ClientSession):
             if not self.repoFileInfo:
                 logger.error("repoFileInfo is None")
                 return fp, None
@@ -168,24 +189,16 @@ class InsertRepoService:
                         self.repoFileInfo["repo_owner"],
                         self.repoFileInfo["repo_name"],
                         self.repoFileInfo["commit_sha"],
-                        fp
+                        fp,
+                        session
                     )
                     return fp, content
                 except Exception as e:
                     logger.error(f"\tFailed fetching file: {fp}, error: {e}")
                     return fp, None
 
-        fetch_coros = [fetch_content(fp) for fp in all_file_paths]
-        fetched_files = await asyncio.gather(*fetch_coros)
-
-        if update_status_func:
-            await update_status_func(f"Generating summaries for {len(fetched_files)} files...")
-        
-        # Track progress
-        progress_counter = [0]  # Use list to allow modification in nested function
-        total_files = len([f for f in fetched_files if f[1]])  # Count files with content
-        
         async def summarize_file(file_path: str, content: Optional[str]):
+            nonlocal progress_counter
             if not content: return None
             
             aiSummary = None
@@ -195,11 +208,10 @@ class InsertRepoService:
                 try:
                     slice_size = TokenProcessingConfig['characterLimit'] - wordDeduction
                     reducedContent = content[: max(0, slice_size)]
-                    async with self.llm_semaphore:
-                        aiSummary = await self.codeProcessor.generate(reducedContent, {
-                            "path": file_path,
-                            **(self.repoFileInfo or {})
-                        })
+                    aiSummary = await self.codeProcessor.generate(reducedContent, {
+                        "path": file_path,
+                        **(self.repoFileInfo or {})
+                    })
                 except Exception:
                     pass
                 finally:
@@ -207,42 +219,83 @@ class InsertRepoService:
                     wordDeduction += TokenProcessingConfig['reduceCharPerRetry']
             
             # Update progress
-            progress_counter[0] += 1
-            if update_status_func and progress_counter[0] % 5 == 0:  # Update every 5 files
-                await update_status_func(f"Summarized {progress_counter[0]}/{total_files} files...")
+            async with progress_lock:
+                progress_counter += 1
+                if update_status_func and total_files and progress_counter % 5 == 0:  # Update every 5 files
+                    await update_status_func(f"Summarized {progress_counter}/{total_files} files...")
             
             return {"filePath": file_path, "content": content, "aiSummary": aiSummary}
 
-        summarize_coros = [summarize_file(fp, ct) for fp, ct in fetched_files]
-        processed_files = await asyncio.gather(*summarize_coros)
+        async def process_files_for_folder(file_paths: List[str], folder_path: str, session: aiohttp.ClientSession):
+            folder_event = folder_ready_events.get(folder_path) if folder_ready_events is not None else None
 
-        if update_status_func:
-            await update_status_func("Inserting summarized files into DB...")
+            if not file_paths:
+                if folder_event:
+                    folder_event.set()
+                return
 
-        for f in processed_files:
-            if not f or not f["aiSummary"]: continue
-            file_path = f["filePath"]
-            folder_path = file_path.rpartition("/")[0]
-            folder_id = self.folderPathMap.get(folder_path)
-            if not folder_id: continue
-            
-            file_name = file_path.split("/")[-1]
-            
-            # Use acreate for async creation
-            await File.objects.acreate(
-                name=file_name,
-                folder_id=folder_id,
-                content=f["content"],
-                ai_summary=f["aiSummary"].summary,
-                usage=f["aiSummary"].usage
-            )
+            try:
+                fetch_coros = [fetch_content(fp, session) for fp in file_paths]
+                fetched_files = await asyncio.gather(*fetch_coros)
 
-    async def _summarizeFolders(self, tree: RepoTreeResult, update_status_func=None, folder_progress=None, depth=0) -> Optional[str]:
+                summarize_coros = [summarize_file(fp, ct) for fp, ct in fetched_files]
+                processed_files = await asyncio.gather(*summarize_coros)
+
+                files_to_create = []
+                for f in processed_files:
+                    if not f or not f["aiSummary"]: 
+                        continue
+                    file_path = f["filePath"]
+                    folder_id = self.folderPathMap.get(folder_path)
+                    if not folder_id:
+                        continue
+
+                    file_name = file_path.split("/")[-1]
+
+                    files_to_create.append(File(
+                        name=file_name,
+                        folder_id=folder_id,
+                        content=f["content"],
+                        ai_summary=f["aiSummary"].summary,
+                        usage=f["aiSummary"].usage
+                    ))
+
+                if files_to_create:
+                    await File.objects.abulk_create(files_to_create)
+            finally:
+                if folder_event:
+                    folder_event.set()
+
+        async def process_folder(tree: RepoTreeResult, session: aiohttp.ClientSession):
+            folder_path = tree.path
+            file_task = asyncio.create_task(process_files_for_folder(tree.files, folder_path, session))
+            sub_tasks = [asyncio.create_task(process_folder(sub, session)) for sub in tree.subdirectories]
+            await asyncio.gather(file_task, *sub_tasks)
+
+        async with aiohttp.ClientSession() as session:
+            await process_folder(rootTree, session)
+
+    async def _summarizeFolders(self, tree: RepoTreeResult, update_status_func=None, folder_progress=None, depth=0, folder_ready_events: Optional[Dict[str, asyncio.Event]] = None) -> Optional[str]:
         folder_name = tree.path or "/"
         
         # Parallelize subfolder summarization
-        tasks = [self._summarizeFolders(subdir, update_status_func, folder_progress, depth + 1) for subdir in tree.subdirectories]
-        subfolders_summaries_results = await asyncio.gather(*tasks)
+        tasks = [asyncio.create_task(self._summarizeFolders(subdir, update_status_func, folder_progress, depth + 1, folder_ready_events)) for subdir in tree.subdirectories]
+        subfolders_future = asyncio.gather(*tasks) if tasks else None
+
+        waitables = []
+        if subfolders_future:
+            waitables.append(subfolders_future)
+
+        folder_event = None
+        if folder_ready_events is not None:
+            folder_event = folder_ready_events.get(tree.path)
+            if folder_event:
+                waitables.append(folder_event.wait())
+
+        if waitables:
+            await asyncio.gather(*waitables)
+
+        subfolders_summaries_results = subfolders_future.result() if subfolders_future else []
         
         subfolders_summaries = []
         for i, summary in enumerate(subfolders_summaries_results):
@@ -274,11 +327,10 @@ class InsertRepoService:
             try:
                 slice_size = TokenProcessingConfig['characterLimit'] - summaryDeduction
                 reduced = combined[: max(0, slice_size)]
-                async with self.llm_semaphore:
-                    aiSummary = await self.folderProcessor.generate([reduced], {
-                        "path": tree.path,
-                        **(self.repoFileInfo or {})
-                    })
+                aiSummary = await self.folderProcessor.generate([reduced], {
+                    "path": tree.path,
+                    **(self.repoFileInfo or {})
+                })
             except Exception:
                 pass
             finally:

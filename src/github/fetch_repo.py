@@ -92,11 +92,17 @@ async def fetch_github_repo_tree(owner: str, repo: str, commit_sha: str) -> Repo
         return root_result
 
 
-async def fetch_github_repo_file(owner: str, repo: str, sha: str, path: str) -> str:
+async def fetch_github_repo_file(owner: str, repo: str, sha: str, path: str, session: Optional[aiohttp.ClientSession] = None) -> str:
     code_url = f'https://raw.githubusercontent.com/{owner}/{repo}/{sha}/{path}'
 
-    async with aiohttp.ClientSession() as session:
-        async with session.get(code_url,headers=github_auth_config, ssl=False) as resp:
+    if session:
+        async with session.get(code_url, headers=github_auth_config, ssl=False) as resp:
             if resp.status != 200:
                 raise Exception(f'Failed to fetch file: {resp.status}')
             return await resp.text()
+    else:
+        async with aiohttp.ClientSession() as new_session:
+            async with new_session.get(code_url, headers=github_auth_config, ssl=False) as resp:
+                if resp.status != 200:
+                    raise Exception(f'Failed to fetch file: {resp.status}')
+                return await resp.text()

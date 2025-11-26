@@ -15,6 +15,6 @@ scrape_configs:
     static_configs:
       - targets: ['redis:6379']
 
-  - job_name: 'backend'
+  - job_name: 'app'
     static_configs:
-      - targets: ['backend:8000']
+      - targets: ['app:8000']
