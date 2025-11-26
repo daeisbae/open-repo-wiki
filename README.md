@@ -1,7 +1,7 @@
 
 # OpenRepoWiki
 
-![OpenRepoWiki Example Image](https://github.com/daeisbae/open-repo-wiki/blob/main/assets/openrepowiki.png)
+![OpenRepoWiki Example Image](https://github.com/daeisbae/open-repo-wiki/blob/v2-main/assets/openrepowiki.png)
 
 **OpenRepoWiki** is a tool that automatically generates a comprehensive wiki page for any given GitHub repository. I **hate** reading code, but I want to learn how to build stuffs from websites to databases. That's why I built **OpenRepoWiki**, where we can understand the purpose of that files and folders of a particular repository.
 
