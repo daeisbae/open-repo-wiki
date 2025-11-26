@@ -30,7 +30,7 @@ class BaseProcessor:
 class CodeProcessor(BaseProcessor):
     def __init__(self, llm: LLMProvider):
         super().__init__(llm)
-        self.code_splitter = CodeSplitter(200, 25)
+        self.code_splitter = CodeSplitter(50, 10)
         self.schema_parser = SchemaParser(FileSchema)
         self.prompt_generator = PromptGenerator(
             PromptTemplateConfig(

@@ -19,8 +19,8 @@ class InsertRepoService:
         self.folderProcessor = FolderProcessor(llm_provider)
         self.folderPathMap: Dict[str, int] = {}
         self.repoFileInfo: Optional[Dict[str, str]] = None
-        self.github_semaphore = asyncio.Semaphore(10)  # Limit concurrent GitHub requests
-        self.llm_semaphore = asyncio.Semaphore(TokenProcessingConfig['llmConcurrency'])  # Limit concurrent LLM requests
+        self.semaphore = asyncio.Semaphore(10)  # Limit concurrent GitHub requests
+        self.llm_semaphore = asyncio.Semaphore(10) # Limit concurrent LLM requests
 
     async def insertRepository(self, owner: str, repo: str):
         # Create initial repository record to track status
@@ -102,7 +102,8 @@ class InsertRepoService:
         await self._fetchAndInsertFiles(filteredTree, update_status)
 
         await update_status("Step 8: Summarizing folders bottom-up...")
-        repo_summary = await self._summarizeFolders(filteredTree, update_status, depth=0)
+        folder_progress = [0] # Shared counter for folder progress
+        repo_summary = await self._summarizeFolders(filteredTree, update_status, folder_progress, depth=0)
 
         # Store repo-level summary on the branch so the UI can detect completion
         if repo_summary:
@@ -161,7 +162,7 @@ class InsertRepoService:
                 logger.error("repoFileInfo is None")
                 return fp, None
                 
-            async with self.github_semaphore:
+            async with self.semaphore:
                 try:
                     content = await fetch_github_repo_file(
                         self.repoFileInfo["repo_owner"],
@@ -190,20 +191,20 @@ class InsertRepoService:
             aiSummary = None
             retries = 0
             wordDeduction = 0
-            async with self.llm_semaphore:
-                while not aiSummary and retries < TokenProcessingConfig['maxRetries']:
-                    try:
-                        slice_size = TokenProcessingConfig['characterLimit'] - wordDeduction
-                        reducedContent = content[: max(0, slice_size)]
+            while not aiSummary and retries < TokenProcessingConfig['maxRetries']:
+                try:
+                    slice_size = TokenProcessingConfig['characterLimit'] - wordDeduction
+                    reducedContent = content[: max(0, slice_size)]
+                    async with self.llm_semaphore:
                         aiSummary = await self.codeProcessor.generate(reducedContent, {
                             "path": file_path,
                             **(self.repoFileInfo or {})
                         })
-                    except Exception:
-                        pass
-                    finally:
-                        retries += 1
-                        wordDeduction += TokenProcessingConfig['reduceCharPerRetry']
+                except Exception:
+                    pass
+                finally:
+                    retries += 1
+                    wordDeduction += TokenProcessingConfig['reduceCharPerRetry']
             
             # Update progress
             progress_counter[0] += 1
@@ -236,15 +237,11 @@ class InsertRepoService:
                 usage=f["aiSummary"].usage
             )
 
-    async def _summarizeFolders(self, tree: RepoTreeResult, update_status_func=None, depth=0) -> Optional[str]:
+    async def _summarizeFolders(self, tree: RepoTreeResult, update_status_func=None, folder_progress=None, depth=0) -> Optional[str]:
         folder_name = tree.path or "/"
         
-        # Only update status for top-level folders to avoid rapid overwrites
-        if update_status_func and depth <= 1:
-            await update_status_func(f'Summarizing folder "{folder_name}"...')
-
         # Parallelize subfolder summarization
-        tasks = [self._summarizeFolders(subdir, update_status_func, depth + 1) for subdir in tree.subdirectories]
+        tasks = [self._summarizeFolders(subdir, update_status_func, folder_progress, depth + 1) for subdir in tree.subdirectories]
         subfolders_summaries_results = await asyncio.gather(*tasks)
         
         subfolders_summaries = []
@@ -273,20 +270,20 @@ class InsertRepoService:
         aiSummary = None
         retries = 0
         summaryDeduction = 0
-        async with self.llm_semaphore:
-            while not aiSummary and retries < TokenProcessingConfig['maxRetries']:
-                try:
-                    slice_size = TokenProcessingConfig['characterLimit'] - summaryDeduction
-                    reduced = combined[: max(0, slice_size)]
+        while not aiSummary and retries < TokenProcessingConfig['maxRetries']:
+            try:
+                slice_size = TokenProcessingConfig['characterLimit'] - summaryDeduction
+                reduced = combined[: max(0, slice_size)]
+                async with self.llm_semaphore:
                     aiSummary = await self.folderProcessor.generate([reduced], {
                         "path": tree.path,
                         **(self.repoFileInfo or {})
                     })
-                except Exception:
-                    pass
-                finally:
-                    retries += 1
-                    summaryDeduction += TokenProcessingConfig['reduceCharPerRetry']
+            except Exception:
+                pass
+            finally:
+                retries += 1
+                summaryDeduction += TokenProcessingConfig['reduceCharPerRetry']
 
         if not aiSummary: return None
 
@@ -294,4 +291,10 @@ class InsertRepoService:
             ai_summary=aiSummary.summary,
             usage=aiSummary.usage
         )
+        
+        if folder_progress is not None:
+            folder_progress[0] += 1
+            if update_status_func:
+                await update_status_func(f"Summarized {folder_progress[0]} folders...")
+                
         return aiSummary.summary
