@@ -1,0 +1,35 @@
+{% for node in nodes %}
+{% if node.type == 'folder' %}
+{% if not node.is_root %}
+<details class="mb-2" id="content-folder-{{ node.obj.folder_id }}" {% if depth == 1 or depth == None %}open{% endif %}>
+    <summary class="text-lg font-semibold text-gray-900 py-2 hover:bg-gray-50 rounded px-2">
+        {{ node.obj.name }}
+    </summary>
+    <div class="pl-4 border-l border-gray-200 ml-2 mt-2">
+        {% if node.obj.ai_summary %}
+        <div class="prose max-w-none mb-4 markdown-content">{{ node.obj.ai_summary }}</div>
+        {% endif %}
+        
+        <!-- Nested folders and files -->
+        {% include "content_tree_node.html" with nodes=node.children depth=2 %}
+    </div>
+</details>
+{% else %}
+<!-- Root folder: just render children without a toggle -->
+{% include "content_tree_node.html" with nodes=node.children depth=1 %}
+{% endif %}
+{% else %}
+<details class="mb-2" id="content-file-{{ node.obj.file_id }}">
+    <summary class="text-base font-medium text-gray-700 py-1 hover:bg-gray-50 rounded px-2">
+        <i class="fas fa-file text-gray-400 mr-1 text-sm"></i> {{ node.obj.name }}
+    </summary>
+    <div class="pl-4 border-l border-gray-200 ml-2 mt-2">
+        {% if node.obj.ai_summary %}
+        <div class="prose max-w-none text-sm markdown-content">{{ node.obj.ai_summary }}</div>
+        {% else %}
+        <p class="text-gray-500 text-sm italic">No summary available.</p>
+        {% endif %}
+    </div>
+</details>
+{% endif %}
+{% endfor %}

@@ -1,4 +1,8 @@
-from langchain.output_parsers import PydanticOutputParser
+try:
+    from langchain.output_parsers import PydanticOutputParser
+except ImportError:
+    from langchain_core.output_parsers import PydanticOutputParser
+
 from typing import Union, Type
 import re
 import asyncio

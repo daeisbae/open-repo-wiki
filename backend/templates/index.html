@@ -1,0 +1,68 @@
+{% extends "base.html" %}
+
+{% block navbar %}{% endblock %}
+
+{% block content %}
+<div class="bg-white min-h-screen flex flex-col">
+    <div class="flex-1 flex flex-col justify-center items-center">
+        <div class="w-full max-w-2xl px-4 sm:px-6 lg:px-8">
+            <div class="text-center mb-12">
+                <h1 class="text-4xl font-bold tracking-tight text-black sm:text-5xl mb-4">
+                    Open Repo Wiki
+                </h1>
+                <p class="text-xl text-gray-500">
+                    Generate documentation for any GitHub repository instantly.
+                </p>
+            </div>
+            
+            <div class="w-full relative">
+                <form action="{% url 'search' %}" method="get" class="relative" id="search-form">
+                    <div class="relative flex items-center">
+                        <input type="text" name="q" id="search-input" class="w-full rounded-full border-gray-300 py-4 pl-6 pr-16 text-lg border outline-none focus:border-black focus:ring-0" placeholder="Enter GitHub repository (e.g., facebook/react)" style="box-shadow: 0 0 15px rgba(0,0,0,0.1);">
+                        <button type="submit" id="search-btn" disabled class="absolute right-2 w-10 h-10 flex items-center justify-center rounded-full bg-gray-300 text-white cursor-not-allowed transition-colors">
+                            <i class="fas fa-arrow-up"></i>
+                        </button>
+                    </div>
+                </form>
+                
+                {% if error %}
+                <div class="absolute left-0 right-0 mt-4 rounded-md bg-red-50 p-4 border border-red-100">
+                    <div class="flex justify-center">
+                        <div class="flex-shrink-0">
+                            <i class="fas fa-exclamation-circle text-red-400"></i>
+                        </div>
+                        <div class="ml-3">
+                            <h3 class="text-sm font-medium text-red-800">
+                                {{ error }}
+                            </h3>
+                        </div>
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    
+    <div class="pb-6 text-center text-xs text-gray-400">
+        <p>Open Repo Wiki can make mistakes. Consider checking important information.</p>
+        <p class="mt-2">Made with <i class="fas fa-heart text-black"></i> by <a href="https://github.com/daeisbae" class="text-black hover:underline">daeisbae</a></p>
+    </div>
+</div>
+
+<script>
+    const input = document.getElementById('search-input');
+    const btn = document.getElementById('search-btn');
+    
+    input.addEventListener('input', function() {
+        if (this.value.trim().length > 0) {
+            btn.disabled = false;
+            btn.classList.remove('bg-gray-300', 'cursor-not-allowed');
+            btn.classList.add('bg-black', 'hover:bg-gray-800', 'cursor-pointer');
+        } else {
+            btn.disabled = true;
+            btn.classList.add('bg-gray-300', 'cursor-not-allowed');
+            btn.classList.remove('bg-black', 'hover:bg-gray-800', 'cursor-pointer');
+        }
+    });
+</script>
+{% endblock %}

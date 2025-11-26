@@ -1,0 +1,87 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="bg-white">
+    <div class="max-w-7xl mx-auto py-16 px-4 sm:py-24 sm:px-6 lg:px-8">
+        <div class="text-center">
+            <h1 class="text-3xl font-extrabold text-black sm:text-4xl">
+                Processing {{ owner }}/{{ repo }}
+            </h1>
+            <div class="mt-6 max-w-2xl mx-auto">
+                <p class="text-lg text-gray-500">
+                    We are generating the wiki for this repository. This may take a few minutes.
+                </p>
+                
+                <div class="mt-8 relative pt-1">
+                    <div class="overflow-hidden h-2 mb-4 text-xs flex rounded bg-gray-200">
+                        <div class="shadow-none flex flex-col text-center whitespace-nowrap text-white justify-center bg-black w-full animate-pulse"></div>
+                    </div>
+                </div>
+                
+                <p id="status-message" class="mt-2 text-sm text-gray-500">Initializing...</p>
+                <p id="queue-pos" class="mt-1 text-sm font-semibold text-black" style="display:none;"></p>
+                <p id="timer" class="mt-1 text-xs text-gray-400"></p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    const owner = "{{ owner }}";
+    const repo = "{{ repo }}";
+    let startTime = null;
+
+    function updateTimer() {
+        if (!startTime) return;
+        
+        const now = new Date();
+        const diff = Math.floor((now - startTime) / 1000);
+        
+        const minutes = Math.floor(diff / 60);
+        const seconds = diff % 60;
+        
+        document.getElementById('timer').innerText = `Time elapsed: ${minutes}m ${seconds}s`;
+    }
+
+    function startSSE() {
+        const eventSource = new EventSource(`/api/status/${owner}/${repo}/`);
+        
+        // Update timer every second
+        setInterval(updateTimer, 1000);
+        
+        eventSource.onmessage = function(event) {
+            const data = JSON.parse(event.data);
+            if (data.status === 'complete') {
+                eventSource.close();
+                window.location.reload();
+            } else if (data.status === 'error') {
+                eventSource.close();
+                document.getElementById('status-message').innerText = "Error: " + (data.message || "Unknown error");
+                document.getElementById('status-message').classList.add('text-red-500');
+            } else if (data.status === 'processing') {
+                if (data.message) {
+                    document.getElementById('status-message').innerText = data.message;
+                }
+                if (data.start_time && !startTime) {
+                    startTime = new Date(data.start_time);
+                }
+                
+                const queueEl = document.getElementById('queue-pos');
+                if (data.queue_pos) {
+                    queueEl.innerText = `Position in queue: ${data.queue_pos}`;
+                    queueEl.style.display = 'block';
+                } else {
+                    queueEl.style.display = 'none';
+                }
+            }
+        };
+        
+        eventSource.onerror = function(err) {
+            console.error("EventSource failed:", err);
+        };
+    }
+
+    // Start SSE
+    startSSE();
+</script>
+{% endblock %}

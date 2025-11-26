@@ -10,6 +10,10 @@ from agent.code_splitter import CodeSplitter
 from llm.llm_provider import LLMProvider
 
 
+from agent.schema_factory import FileSchema, FolderSchema
+from pydantic import BaseModel
+from typing import Union
+
 # Base Processor
 class BaseProcessor:
     def __init__(self, llm: LLMProvider):
@@ -17,7 +21,7 @@ class BaseProcessor:
         self.schema_parser: Optional[SchemaParser] = None
         self.prompt_generator: Optional[PromptGenerator] = None
 
-    async def process(self, prompt: str) -> dict:
+    async def process(self, prompt: str) -> Union[FileSchema, FolderSchema]:
         response = await self.llm.run(prompt)
         return self.schema_parser.parse(response)
 

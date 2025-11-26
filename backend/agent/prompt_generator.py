@@ -1,7 +1,7 @@
 from enum import Enum
 from typing import List, Optional
 from pydantic import BaseModel
-from langchain.prompts import PromptTemplate
+from langchain_core.prompts import PromptTemplate
 
 
 class PromptType(str, Enum):

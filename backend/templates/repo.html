@@ -1,0 +1,235 @@
+{% extends "base.html" %}
+
+{% block title %}{{ repository.owner }}/{{ repository.repo }} - Open Repo Wiki{% endblock %}
+
+{% block content %}
+<div class="h-screen flex flex-col overflow-hidden">
+    <!-- Breadcrumb - Fixed at top -->
+    <nav class="flex px-4 sm:px-6 lg:px-8 py-4 border-b border-gray-200 bg-white" aria-label="Breadcrumb">
+        <ol id="breadcrumb" role="list" class="flex items-center space-x-4 max-w-7xl mx-auto w-full">
+            <li>
+                <div>
+                    <a href="/" class="text-gray-400 hover:text-gray-500">
+                        <i class="fas fa-home flex-shrink-0 h-5 w-5"></i>
+                        <span class="sr-only">Home</span>
+                    </a>
+                </div>
+            </li>
+            <li>
+                <div class="flex items-center">
+                    <i class="fas fa-chevron-right flex-shrink-0 h-5 w-5 text-gray-300"></i>
+                    <a href="https://github.com/{{ repository.owner }}" target="_blank" class="ml-4 text-sm font-medium text-gray-500 hover:text-gray-700">{{ repository.owner }}</a>
+                </div>
+            </li>
+            <li>
+                <div class="flex items-center">
+                    <i class="fas fa-chevron-right flex-shrink-0 h-5 w-5 text-gray-300"></i>
+                    <a href="https://github.com/{{ repository.owner }}/{{ repository.repo }}" target="_blank" class="ml-4 text-sm font-medium text-gray-500 hover:text-gray-700">{{ repository.repo }}</a>
+                </div>
+            </li>
+            <li>
+                <div class="flex items-center">
+                    <i class="fas fa-chevron-right flex-shrink-0 h-5 w-5 text-gray-300"></i>
+                    <a href="#" onclick="goToRoot(event)" class="ml-4 text-xs font-mono text-gray-400 hover:text-gray-600">{{ branch.last_commit_sha|slice:":7" }}</a>
+                </div>
+            </li>
+            <!-- Dynamic path items will be appended here -->
+        </ol>
+    </nav>
+
+    <div class="flex-1 overflow-hidden">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-full lg:grid lg:grid-cols-12 lg:gap-8">
+            <!-- Left Sidebar - File Tree (Fixed) -->
+            <aside class="hidden lg:block lg:col-span-3 h-full overflow-y-auto py-6">
+                <nav class="space-y-1" aria-label="Sidebar">
+                    <div class="pb-4 mb-4 border-b border-gray-200">
+                        <h3 class="text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                            Files
+                        </h3>
+                    </div>
+                    <div id="file-tree-container" class="space-y-1">
+                        {% include "file_tree_node.html" with nodes=file_tree %}
+                    </div>
+                </nav>
+            </aside>
+
+            <!-- Main Content (Scrollable) -->
+            <main class="lg:col-span-9 h-full overflow-y-auto py-6">
+                <div class="prose max-w-none">
+                    <!-- Main Summary at top -->
+                    {% if branch.ai_summary %}
+                    <div id="main-summary" class="mb-8">{{ branch.ai_summary }}</div>
+                    {% endif %}
+
+                    <!-- Collapsible Content Tree -->
+                    <div id="content-tree" class="space-y-2">
+                        {% include "content_tree_node.html" with nodes=file_tree %}
+                    </div>
+                </div>
+            </main>
+        </div>
+    </div>
+</div>
+
+<style>
+    .prose code {
+        background-color: #e0f2fe !important;
+        color: #075985 !important;
+        padding: 0.2em 0.4em;
+        border-radius: 0.25rem;
+        font-weight: 600;
+    }
+    .prose code::before, .prose code::after {
+        content: "" !important;
+    }
+    .prose a {
+        background-color: #e0f2fe;
+        color: #075985;
+        padding: 0.1em 0.3em;
+        border-radius: 0.25rem;
+        text-decoration: none;
+    }
+    .prose a:hover {
+        background-color: #bae6fd;
+    }
+    
+    details summary {
+        cursor: pointer;
+        list-style: none;
+    }
+    details summary::-webkit-details-marker {
+        display: none;
+    }
+    details summary::before {
+        content: '▶';
+        display: inline-block;
+        margin-right: 0.5rem;
+        transition: transform 0.2s;
+        font-size: 0.75rem;
+        color: #9ca3af;
+    }
+    details[open] summary::before {
+        transform: rotate(90deg);
+    }
+</style>
+
+<script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+<script>
+    const repoOwner = "{{ repository.owner }}";
+    const repoName = "{{ repository.repo }}";
+
+    document.addEventListener('DOMContentLoaded', (event) => {
+        // Render main summary
+        const mainSummary = document.getElementById('main-summary');
+        if (mainSummary) {
+            mainSummary.innerHTML = marked.parse(mainSummary.textContent);
+        }
+        
+        // Render all markdown content in the tree
+        document.querySelectorAll('.markdown-content').forEach(el => {
+            if (el.textContent.trim()) {
+                el.innerHTML = marked.parse(el.textContent);
+            }
+        });
+    });
+
+    function goToRoot(event) {
+        event.preventDefault();
+        // Clear dynamic breadcrumb items
+        const breadcrumb = document.getElementById('breadcrumb');
+        while (breadcrumb.children.length > 4) {
+            breadcrumb.removeChild(breadcrumb.lastChild);
+        }
+        
+        // Remove highlight from previously active item
+        const previousActive = document.querySelector('.active-tree-item');
+        if (previousActive) {
+            previousActive.classList.remove('active-tree-item', 'bg-gray-100');
+        }
+        
+        // Scroll to top
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+        
+        // Scroll sidebar to top
+        const fileTreeContainer = document.getElementById('file-tree-container');
+        if (fileTreeContainer) {
+            fileTreeContainer.scrollTop = 0;
+        }
+    }
+
+    function updateBreadcrumb(path, isFile) {
+        const breadcrumb = document.getElementById('breadcrumb');
+        // Remove any existing dynamic path items (after the first 4 static items)
+        while (breadcrumb.children.length > 4) {
+            breadcrumb.removeChild(breadcrumb.lastChild);
+        }
+        
+        if (!path || path === '/') return;
+        
+        // Split path and create breadcrumb items
+        const parts = path.split('/').filter(p => p);
+        let currentPath = '';
+        parts.forEach((part, index) => {
+            currentPath += (currentPath ? '/' : '') + part;
+            const pathForClick = currentPath;
+            
+            const li = document.createElement('li');
+            li.innerHTML = `
+                <div class="flex items-center">
+                    <i class="fas fa-chevron-right flex-shrink-0 h-5 w-5 text-gray-300"></i>
+                    <a href="#${pathForClick}" class="ml-4 text-sm font-medium text-gray-500 hover:text-gray-700">${part}</a>
+                </div>
+            `;
+            breadcrumb.appendChild(li);
+        });
+    }
+
+    function showSummary(event, elementId, name, path, isFile) {
+        if (event.target.tagName === 'A' || event.currentTarget.tagName === 'A') {
+            event.preventDefault();
+        }
+        
+        // Remove highlight from previously active item
+        const previousActive = document.querySelector('.active-tree-item');
+        if (previousActive) {
+            previousActive.classList.remove('active-tree-item', 'bg-gray-100');
+        }
+        
+        // Highlight the current item
+        const clickedElement = event.currentTarget;
+        if (clickedElement) {
+            clickedElement.classList.add('active-tree-item', 'bg-gray-100');
+        }
+        
+        // Scroll the parent folder to top of sidebar
+        const fileTreeContainer = document.getElementById('file-tree-container');
+        if (fileTreeContainer && clickedElement) {
+            let scrollTarget = clickedElement;
+            if (isFile) {
+                const parentDetails = clickedElement.closest('details');
+                if (parentDetails) {
+                    scrollTarget = parentDetails.querySelector('summary') || parentDetails;
+                }
+            }
+            const containerRect = fileTreeContainer.getBoundingClientRect();
+            const elementRect = scrollTarget.getBoundingClientRect();
+            const scrollOffset = elementRect.top - containerRect.top + fileTreeContainer.scrollTop;
+            fileTreeContainer.scrollTo({ top: scrollOffset, behavior: 'smooth' });
+        }
+        
+        // Update breadcrumb
+        updateBreadcrumb(path, isFile);
+        
+        // Scroll to the corresponding content in main area
+        const contentElement = document.getElementById('content-' + elementId);
+        if (contentElement) {
+            contentElement.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            // Open the details if closed
+            const detailsEl = contentElement.closest('details');
+            if (detailsEl && !detailsEl.open) {
+                detailsEl.open = true;
+            }
+        }
+    }
+</script>
+{% endblock %}

@@ -3,30 +3,46 @@ services:
     image: postgres:16
     restart: always
     environment:
-      POSTGRES_DB: ${DB_NAME}
-      POSTGRES_USER: ${DB_USER}
-      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      POSTGRES_DB: ${DB_NAME:-postgres}
+      POSTGRES_USER: ${DB_USER:-postgres}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-postgres}
     ports:
       - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${DB_USER} -d ${DB_NAME}"]
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-postgres} -d ${DB_NAME:-postgres}"]
       interval: 10s
       timeout: 5s
       retries: 5
     networks:
       - app-network
 
-  fastapi:
+  redis:
+    image: redis:7-alpine
+    restart: always
+    ports:
+      - "6379:6379"
+    networks:
+      - app-network
+
+  backend:
     build: ./backend
     restart: always
+    command: bash -c "python manage.py makemigrations wiki_app && python manage.py migrate && python manage.py runserver 0.0.0.0:8000"
+    develop:
+      watch:
+        - action: sync
+          path: ./backend
+          target: /app
+        - action: rebuild
+          path: ./backend/requirements.txt
     environment:
       DB_HOST: postgres
-      DB_PORT: ${DB_PORT}
-      DB_NAME: ${DB_NAME}
-      DB_USER: ${DB_USER}
-      DB_PASSWORD: ${DB_PASSWORD}
+      DB_PORT: ${DB_PORT:-5432}
+      DB_NAME: ${DB_NAME:-postgres}
+      DB_USER: ${DB_USER:-postgres}
+      DB_PASSWORD: ${DB_PASSWORD:-postgres}
       
       # Certificates for DB connection
       DB_CERTIFICATE_LINK: ${DB_CERTIFICATE_LINK}
@@ -44,24 +60,37 @@ services:
       TOKEN_PROCESSING_CHARACTER_LIMIT: ${TOKEN_PROCESSING_CHARACTER_LIMIT:-30000}
       TOKEN_PROCESSING_MAX_RETRIES: ${TOKEN_PROCESSING_MAX_RETRIES:-3}
       TOKEN_PROCESSING_REDUCE_CHAR_PER_RETRY: ${TOKEN_PROCESSING_REDUCE_CHAR_PER_RETRY:-3000}
+
+      CELERY_BROKER_URL: redis://redis:6379/0
+      CELERY_RESULT_BACKEND: redis://redis:6379/0
     ports:
-      - "8080:8080"
+      - "8000:8000"
     depends_on:
       postgres:
         condition: service_healthy
+      redis:
+        condition: service_started
     networks:
       - app-network
 
-  nextjs:
-    build: .
+  celery_worker:
+    build: ./backend
     restart: always
+    command: celery -A core_config worker -l info
+    develop:
+      watch:
+        - action: sync+restart
+          path: ./backend
+          target: /app
+        - action: rebuild
+          path: ./backend/requirements.txt
     environment:
       DB_HOST: postgres
-      DB_PORT: ${DB_PORT}
-      DB_NAME: ${DB_NAME}
-      DB_USER: ${DB_USER}
-      DB_PASSWORD: ${DB_PASSWORD}
-
+      DB_PORT: ${DB_PORT:-5432}
+      DB_NAME: ${DB_NAME:-postgres}
+      DB_USER: ${DB_USER:-postgres}
+      DB_PASSWORD: ${DB_PASSWORD:-postgres}
+      
       # Certificates for DB connection
       DB_CERTIFICATE_LINK: ${DB_CERTIFICATE_LINK}
       DB_CERTIFICATE_REGION: ${DB_CERTIFICATE_REGION}
@@ -71,18 +100,58 @@ services:
       DB_CERTIFICATE_SECRET_ACCESS_KEY: ${DB_CERTIFICATE_SECRET_ACCESS_KEY}
 
       GITHUB_TOKEN: ${GITHUB_TOKEN}
+      LLM_PROVIDER: ${LLM_PROVIDER}
+      LLM_APIKEY: ${LLM_APIKEY}
+      LLM_MODELNAME: ${LLM_MODELNAME}
 
-      API_ENDPOINT: ${NEXT_PUBLIC_API_ENDPOINT}
+      TOKEN_PROCESSING_CHARACTER_LIMIT: ${TOKEN_PROCESSING_CHARACTER_LIMIT:-30000}
+      TOKEN_PROCESSING_MAX_RETRIES: ${TOKEN_PROCESSING_MAX_RETRIES:-3}
+      TOKEN_PROCESSING_REDUCE_CHAR_PER_RETRY: ${TOKEN_PROCESSING_REDUCE_CHAR_PER_RETRY:-3000}
+
+      CELERY_BROKER_URL: redis://redis:6379/0
+      CELERY_RESULT_BACKEND: redis://redis:6379/0
+    depends_on:
+      backend:
+        condition: service_started
+      redis:
+        condition: service_started
+    networks:
+      - app-network
+
+  prometheus:
+    image: prom/prometheus:latest
+    restart: always
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml
+      - prometheus_data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+    networks:
+      - app-network
+
+  grafana:
+    image: grafana/grafana:latest
+    restart: always
     ports:
       - "3000:3000"
+    environment:
+      GF_SECURITY_ADMIN_USER: ${GRAFANA_USER:-admin}
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_PASSWORD:-admin}
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./monitoring/grafana/provisioning:/etc/grafana/provisioning
     depends_on:
-      fastapi:
-        condition: service_started
+      - prometheus
     networks:
       - app-network
 
 volumes:
   postgres_data:
+  prometheus_data:
+  grafana_data:
 
 networks:
   app-network:

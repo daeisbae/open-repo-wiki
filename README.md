@@ -24,7 +24,7 @@
 ### Configuration (Local)
 
 1. Copy `.env.example` to `.env`
-2. Configure all the variables given in `.env`
+2. Configure just `github token` and `LLM configurations`
 3. Run `docker compose up` or `docker compose up -d` to hide the output
 
 ### Configuration (Cloud)
@@ -49,9 +49,9 @@
 **Example:**
 
 ```
-LLM_PROVIDER=ollama
-LLM_APIKEY=
-LLM_MODELNAME=qwen2.5:14b
+LLM_PROVIDER=deepseek
+LLM_APIKEY=sk-....
+LLM_MODELNAME=deepseek-chat
 ```
 
 ### Additional Information

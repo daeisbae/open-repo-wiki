@@ -1,4 +1,7 @@
 langchain
+langchain-core
+langchain-community
+langchain-text-splitters
 fastapi
 uvicorn
 pydantic
@@ -9,3 +12,8 @@ boto3
 asyncpg
 loguru
 psycopg[binary]
+django
+djangorestframework
+celery
+redis
+django-environ
