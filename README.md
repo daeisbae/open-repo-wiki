@@ -9,6 +9,7 @@
 
 - **Automated Wiki Generation:** Creates a summarized overview of a repository's purpose, functionality, and core components.
 - **Codebase Analysis:** Analyzes the code structure, identifies key files and functions, and explains their roles within the project.
+- **Dependency Graph:** Shows how files in each folder relate to each other using Mermaid diagrams with labeled arrows (e.g., "provides config to", "transforms data for").
 - **Link To That Code Block:** The sky-blue highlighted code block will point to the Github link where it referenced.
 
 ## Installation

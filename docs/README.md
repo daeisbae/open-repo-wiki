@@ -258,6 +258,7 @@ erDiagram
         string path
         integer parent_folder_id FK "References Folder"
         string ai_summary
+        string dependency_graph "Mermaid diagram of file relationships"
         integer branch_id FK "References Branch"
     }
 
@@ -268,6 +269,7 @@ erDiagram
         integer folder_id FK "References Folder"
         string content
         string ai_summary
+        json dependencies "List of imported modules"
     }
 
     Repository ||--o{ Branch : has
