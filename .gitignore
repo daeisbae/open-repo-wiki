@@ -49,3 +49,6 @@ env/
 # OS
 .DS_Store
 Thumbs.db
+
+# Timing visualizations (generated)
+visualization-tree/

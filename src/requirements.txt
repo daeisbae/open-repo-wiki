@@ -2,8 +2,6 @@ langchain
 langchain-core
 langchain-community
 langchain-text-splitters
-fastapi
-uvicorn
 pydantic
 openai
 python-dotenv
