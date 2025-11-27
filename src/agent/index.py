@@ -45,7 +45,7 @@ class CodeProcessor(BaseProcessor):
             PromptType.FILE
         )
 
-    async def generate(self, code: str, repo_info: dict[str, str]) -> dict:
+    async def generate(self, code: str, repo_info: dict[str, str]) -> FileSchema:
         extension = repo_info.get('path').split('.').pop()
         splitted_code = self.code_splitter.split_code(extension, code)
         variables = FilePromptTemplateVariables(
@@ -79,7 +79,7 @@ class FolderProcessor(BaseProcessor):
             PromptType.FOLDER
         )
 
-    async def generate(self, ai_summaries: List[str], repo_info: dict[str, str]) -> dict:
+    async def generate(self, ai_summaries: List[str], repo_info: dict[str, str]) -> FolderSchema:
         variables = FolderPromptTemplateVariables(
             requirements=FolderPrompt,
             format_instructions=self.schema_parser.format_instructions,

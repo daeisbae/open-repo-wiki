@@ -17,11 +17,13 @@ from loguru import logger
 
 class InsertRepoService:
     def __init__(self, llm_provider: LLMProvider):
+        # Note: This service is instantiated per task, so it is not a singleton.
+        # However, we use a semaphore to limit concurrent requests to GitHub/LLM to avoid rate limits.
         self.codeProcessor = CodeProcessor(llm_provider)
         self.folderProcessor = FolderProcessor(llm_provider)
         self.folderPathMap: Dict[str, int] = {}
         self.repoFileInfo: Optional[Dict[str, str]] = None
-        self.semaphore = asyncio.Semaphore(10)  # Limit concurrent GitHub requests
+        self.semaphore = asyncio.Semaphore(20)  # Limit concurrent GitHub requests
 
     async def insertRepository(self, owner: str, repo: str):
         # Create initial repository record to track status
@@ -235,11 +237,12 @@ class InsertRepoService:
                 return
 
             try:
-                fetch_coros = [fetch_content(fp, session) for fp in file_paths]
-                fetched_files = await asyncio.gather(*fetch_coros)
+                async def process_single_file(fp):
+                    _, content = await fetch_content(fp, session)
+                    return await summarize_file(fp, content)
 
-                summarize_coros = [summarize_file(fp, ct) for fp, ct in fetched_files]
-                processed_files = await asyncio.gather(*summarize_coros)
+                tasks = [process_single_file(fp) for fp in file_paths]
+                processed_files = await asyncio.gather(*tasks)
 
                 files_to_create = []
                 for f in processed_files:
@@ -278,7 +281,8 @@ class InsertRepoService:
     async def _summarizeFolders(self, tree: RepoTreeResult, update_status_func=None, folder_progress=None, depth=0, folder_ready_events: Optional[Dict[str, asyncio.Event]] = None) -> Optional[str]:
         folder_name = tree.path or "/"
         
-        # Parallelize subfolder summarization
+        # Parallelize subfolder summarization: Spawn tasks for all subdirectories immediately
+        # so they can proceed independently as soon as their files are ready.
         tasks = [asyncio.create_task(self._summarizeFolders(subdir, update_status_func, folder_progress, depth + 1, folder_ready_events)) for subdir in tree.subdirectories]
         subfolders_future = asyncio.gather(*tasks) if tasks else None
 
@@ -346,7 +350,7 @@ class InsertRepoService:
         
         if folder_progress is not None:
             folder_progress[0] += 1
-            if update_status_func:
+            if update_status_func and folder_progress[0] % 5 == 0:
                 await update_status_func(f"Summarized {folder_progress[0]} folders...")
                 
         return aiSummary.summary
