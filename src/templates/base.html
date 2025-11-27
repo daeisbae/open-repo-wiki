@@ -6,6 +6,7 @@
     <title>{% block title %}Open Repo Wiki{% endblock %}</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
     <script>
         tailwind.config = {
             theme: {
@@ -16,6 +17,17 @@
                 }
             }
         }
+        // Initialize Mermaid with custom config
+        mermaid.initialize({
+            startOnLoad: false,
+            theme: 'neutral',
+            flowchart: {
+                useMaxWidth: true,
+                htmlLabels: true,
+                curve: 'basis'
+            },
+            securityLevel: 'loose'
+        });
     </script>
     <style>
         body {

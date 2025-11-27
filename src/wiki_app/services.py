@@ -6,6 +6,7 @@ from asgiref.sync import sync_to_async
 from django.db import transaction
 
 from agent.index import CodeProcessor, FolderProcessor
+from agent.dependency_parser import DependencyParser
 from wiki_app.models import Repository, Branch, Folder, File, Topic
 from github.fetch_repo import fetch_github_repo_details, fetch_github_repo_tree, RepoTreeResult, fetch_github_repo_file
 from github.filterfile import whitelisted_file, blacklisted_file, whitelisted_filter, blacklisted_files, \
@@ -24,6 +25,7 @@ class InsertRepoService:
         self.folderPathMap: Dict[str, int] = {}
         self.repoFileInfo: Optional[Dict[str, str]] = None
         self.semaphore = asyncio.Semaphore(20)  # Limit concurrent GitHub requests
+        self.dependencyParser = DependencyParser()
 
     async def insertRepository(self, owner: str, repo: str):
         # Create initial repository record to track status
@@ -203,6 +205,9 @@ class InsertRepoService:
             nonlocal progress_counter
             if not content: return None
             
+            # Parse dependencies from the file content
+            dependencies = self.dependencyParser.parse(content, file_path)
+            
             aiSummary = None
             retries = 0
             wordDeduction = 0
@@ -226,7 +231,7 @@ class InsertRepoService:
                 if update_status_func and total_files and progress_counter % 5 == 0:  # Update every 5 files
                     await update_status_func(f"Summarized {progress_counter}/{total_files} files...")
             
-            return {"filePath": file_path, "content": content, "aiSummary": aiSummary}
+            return {"filePath": file_path, "content": content, "aiSummary": aiSummary, "dependencies": dependencies}
 
         async def process_files_for_folder(file_paths: List[str], folder_path: str, session: aiohttp.ClientSession):
             folder_event = folder_ready_events.get(folder_path) if folder_ready_events is not None else None
@@ -260,7 +265,8 @@ class InsertRepoService:
                         folder_id=folder_id,
                         content=f["content"],
                         ai_summary=f["aiSummary"].summary,
-                        usage=f["aiSummary"].usage
+                        usage=f["aiSummary"].usage,
+                        dependencies=f.get("dependencies", [])
                     ))
 
                 if files_to_create:
@@ -312,17 +318,23 @@ class InsertRepoService:
         files_in_folder = []
         async for f in File.objects.filter(folder_id=folder_id):
             files_in_folder.append(f)
-            
-        file_summaries = [
-            f"Summary of file {f.name}:\n{f.ai_summary}\n"
-            for f in files_in_folder
-            if f.ai_summary
-        ]
+        
+        # Build file summaries with import information for LLM context
+        file_summaries = []
+        for f in files_in_folder:
+            if f.ai_summary:
+                summary_parts = [f"Summary of file {f.name}:\n{f.ai_summary}"]
+                # Include import info to help LLM understand dependencies
+                if f.dependencies:
+                    summary_parts.append(f"Imports: {', '.join(f.dependencies[:10])}")  # Limit to avoid token overflow
+                file_summaries.append("\n".join(summary_parts) + "\n")
 
         if not subfolders_summaries and not file_summaries:
             return None
 
-        combined = "\n\n".join(subfolders_summaries + file_summaries)
+        # Combine all context for the LLM
+        combined_parts = subfolders_summaries + file_summaries
+        combined = "\n\n".join(combined_parts)
 
         aiSummary = None
         retries = 0
@@ -343,9 +355,13 @@ class InsertRepoService:
 
         if not aiSummary: return None
 
+        # Use the LLM-generated dependency graph with descriptive relationship labels
+        dependency_graph = aiSummary.dependency_graph if hasattr(aiSummary, 'dependency_graph') else None
+
         await Folder.objects.filter(folder_id=folder_id).aupdate(
             ai_summary=aiSummary.summary,
-            usage=aiSummary.usage
+            usage=aiSummary.usage,
+            dependency_graph=dependency_graph if dependency_graph else None
         )
         
         if folder_progress is not None:

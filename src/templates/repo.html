@@ -111,6 +111,21 @@
     details[open] summary::before {
         transform: rotate(90deg);
     }
+    
+    /* Mermaid diagram styles */
+    .mermaid-container {
+        background-color: white;
+        border-radius: 0.5rem;
+        padding: 1rem;
+    }
+    .mermaid {
+        display: flex;
+        justify-content: center;
+    }
+    .mermaid svg {
+        max-width: 100%;
+        height: auto;
+    }
 </style>
 
 <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
@@ -118,7 +133,7 @@
     const repoOwner = "{{ repository.owner }}";
     const repoName = "{{ repository.repo }}";
 
-    document.addEventListener('DOMContentLoaded', (event) => {
+    document.addEventListener('DOMContentLoaded', async (event) => {
         // Render main summary
         const mainSummary = document.getElementById('main-summary');
         if (mainSummary) {
@@ -131,7 +146,32 @@
                 el.innerHTML = marked.parse(el.textContent);
             }
         });
+        
+        // Render all Mermaid diagrams
+        try {
+            await mermaid.run({
+                querySelector: '.mermaid'
+            });
+        } catch (e) {
+            console.error('Mermaid rendering error:', e);
+        }
     });
+
+    // Re-render Mermaid when details are opened (for lazy rendering)
+    document.addEventListener('toggle', async (event) => {
+        if (event.target.tagName === 'DETAILS' && event.target.open) {
+            const mermaidElements = event.target.querySelectorAll('.mermaid:not([data-processed])');
+            if (mermaidElements.length > 0) {
+                try {
+                    await mermaid.run({
+                        nodes: mermaidElements
+                    });
+                } catch (e) {
+                    console.error('Mermaid rendering error:', e);
+                }
+            }
+        }
+    }, true);
 
     function goToRoot(event) {
         event.preventDefault();

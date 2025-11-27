@@ -44,6 +44,7 @@ CREATE TABLE IF NOT EXISTS Folder (
     parent_folder_id    INTEGER,
     ai_summary          TEXT,
     branch_id           INTEGER NOT NULL,
+    dependency_graph    TEXT,
     FOREIGN KEY (parent_folder_id) REFERENCES Folder(folder_id) ON DELETE CASCADE,
     FOREIGN KEY (branch_id) REFERENCES Branch(branch_id) ON DELETE CASCADE,
     CHECK ( (path = '' AND parent_folder_id IS NULL) OR (path != '' AND parent_folder_id IS NOT NULL) )
@@ -57,5 +58,6 @@ CREATE TABLE IF NOT EXISTS File (
     content         TEXT,
     ai_summary      TEXT,
     usage           VARCHAR(100),
+    dependencies    JSONB DEFAULT '[]'::jsonb,
     FOREIGN KEY (folder_id) REFERENCES Folder(folder_id) ON DELETE CASCADE
 );

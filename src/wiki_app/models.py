@@ -46,6 +46,7 @@ class Folder(models.Model):
     path = models.TextField()
     ai_summary = models.TextField(null=True, blank=True)
     usage = models.TextField(null=True, blank=True)
+    dependency_graph = models.TextField(null=True, blank=True)  # Mermaid diagram string
 
     class Meta:
         db_table = 'folder'
@@ -58,6 +59,7 @@ class File(models.Model):
     content = models.TextField()
     ai_summary = models.TextField(null=True, blank=True)
     usage = models.TextField(null=True, blank=True)
+    dependencies = models.JSONField(null=True, blank=True, default=list)  # List of imported modules
 
     class Meta:
         db_table = 'file'

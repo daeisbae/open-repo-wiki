@@ -48,6 +48,8 @@ You will receive the following information, summarized from the expert software 
 * The repository name.
 * The commit sha of the repository.
 * The path to the code file within the repository.
+3. **Import/Dependency Information (if provided):**
+* Raw import statements detected in each file to help understand dependencies.
 
 **Analysis Tasks:**
 
@@ -58,9 +60,23 @@ You will receive the following information, summarized from the expert software 
 *   Identify its dependencies on other modules/components/folder.
 *   Highlight any important classes, functions, or data structures in it's sub-files and sub-folders.
 *   Link all the code blocks that are referenced using the following markdown link format: [`Description of Code Block`](Full github url of the file including the start line with optional ending line#L{startLine}-L{endLine}). This is in the form of "https://github.com/{owner}/{repo}/blob/{commitSha}/{path}#L{lineStart}-L{lineEnd}".
+
 2. **Dependencies and Relationships:**
 *   Clearly document the relationships between different folders and files.
 *   Explain how different parts of the codebase interact with each other.
+
+3. **Dependency Graph (Mermaid):**
+*   Generate a Mermaid flowchart (graph TD) showing file relationships WITHIN this folder.
+*   Use SHORT labeled arrows (under 5 words) that describe the relationship/action.
+*   Good labels: "provides config to", "transforms data for", "reports errors to", "validates input for", "extends", "implements", "fetches from", "stores in", "parses for", "informs", "uses models from"
+*   Only show meaningful relationships between files in this folder.
+*   Keep node names short (just filename without extension).
+*   Example:
+    graph TD
+        services -->|uses models from| models
+        views -->|delegates to| services
+        tasks -->|async wrapper for| services
+        config -->|provides settings to| services
 
 **Output:**
 """

@@ -30,4 +30,16 @@ class FolderSchema(BaseModel):
             '`[{Description of Code Block}]({Full GitHub URL}#L{startLine}-L{endLine})`.'
         )
     )
+    dependency_graph: str = Field(
+        default="",
+        description=(
+            'A Mermaid flowchart (graph TD) showing how files in this folder relate to each other. '
+            'Use SHORT labeled arrows (under 5 words) describing the relationship: '
+            'e.g., A -->|provides config to| B, C -->|transforms data for| D, E -->|reports errors to| F. '
+            'Labels should describe the action/relationship like: uses, informs, transforms, validates, '
+            'extends, implements, configures, reports to, fetches from, stores in, parses for, etc. '
+            'Only include files with actual relationships. Return empty string if none exist. '
+            'Do not include ```mermaid``` fences.'
+        )
+    )
 
