@@ -68,7 +68,6 @@ blacklisted_filter = [
     r'assets',
     r'audio',
     r'bench',
-    r'bin',
     r'build',
     r'cache',
     r'changelog',
@@ -109,6 +108,5 @@ blacklisted_filter = [
     r'video',
     r'workflows',
     r'locale',
-    r'conf',
     r'tutorial',
 ]
