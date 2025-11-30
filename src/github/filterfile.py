@@ -49,7 +49,6 @@ blacklisted_file = [
     r'demo',
     r'entrypoint',
     r'example',
-    r'config',
     r'sponsor',  # sponsors.js
     r'contrib',  # contributors.js
     r'gulpfile',
