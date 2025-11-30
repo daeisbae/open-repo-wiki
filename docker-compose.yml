@@ -43,6 +43,8 @@ services:
       DB_NAME: ${DB_NAME:-postgres}
       DB_USER: ${DB_USER:-postgres}
       DB_PASSWORD: ${DB_PASSWORD:-postgres}
+      DJANGO_SECRET_KEY: ${DJANGO_SECRET_KEY}
+      DEBUG: ${DEBUG:-True}
 
       GITHUB_TOKEN: ${GITHUB_TOKEN}
       LLM_PROVIDER: ${LLM_PROVIDER}
@@ -82,6 +84,8 @@ services:
       DB_NAME: ${DB_NAME:-postgres}
       DB_USER: ${DB_USER:-postgres}
       DB_PASSWORD: ${DB_PASSWORD:-postgres}
+      DJANGO_SECRET_KEY: ${DJANGO_SECRET_KEY}
+      DEBUG: ${DEBUG:-False}
 
       GITHUB_TOKEN: ${GITHUB_TOKEN}
       LLM_PROVIDER: ${LLM_PROVIDER}
