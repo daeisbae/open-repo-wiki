@@ -1,0 +1,200 @@
+services:
+  traefik:
+    image: traefik:v3.0
+    restart: always
+    command:
+      - "--api.dashboard=true"
+      - "--providers.docker=true"
+      - "--providers.docker.exposedbydefault=false"
+      - "--entrypoints.web.address=:80"
+      - "--entrypoints.websecure.address=:443"
+      - "--entrypoints.web.http.redirections.entryPoint.to=websecure"
+      - "--entrypoints.web.http.redirections.entryPoint.scheme=https"
+      - "--certificatesresolvers.myresolver.acme.tlschallenge=true"
+      - "--certificatesresolvers.myresolver.acme.email=${ACME_EMAIL}"
+      - "--certificatesresolvers.myresolver.acme.storage=/letsencrypt/acme.json"
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - "/var/run/docker.sock:/var/run/docker.sock:ro"
+      - "letsencrypt_data:/letsencrypt"
+    networks:
+      - app-network
+    labels:
+      - "traefik.enable=true"
+      # Traefik Dashboard with basic auth
+      - "traefik.http.routers.traefik.rule=Host(`traefik.${DOMAIN_NAME}`)"
+      - "traefik.http.routers.traefik.entrypoints=websecure"
+      - "traefik.http.routers.traefik.tls.certresolver=myresolver"
+      - "traefik.http.routers.traefik.service=api@internal"
+      - "traefik.http.routers.traefik.middlewares=traefik-auth"
+      # Basic auth: generate with: echo $(htpasswd -nb admin yourpassword) | sed -e s/\\$/\\$\\$/g
+      - "traefik.http.middlewares.traefik-auth.basicauth.users=${TRAEFIK_DASHBOARD_AUTH}"
+
+  portainer:
+    image: portainer/portainer-ce:latest
+    restart: always
+    security_opt:
+      - no-new-privileges:true
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - portainer_data:/data
+    networks:
+      - app-network
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.portainer.rule=Host(`portainer.${DOMAIN_NAME}`)"
+      - "traefik.http.routers.portainer.entrypoints=websecure"
+      - "traefik.http.routers.portainer.tls.certresolver=myresolver"
+      - "traefik.http.services.portainer.loadbalancer.server.port=9000"
+
+  postgres:
+    image: postgres:16
+    restart: always
+    environment:
+      POSTGRES_DB: ${DB_NAME:-postgres}
+      POSTGRES_USER: ${DB_USER:-postgres}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-postgres}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-postgres} -d ${DB_NAME:-postgres}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - app-network
+
+  redis:
+    image: redis:7-alpine
+    restart: always
+    networks:
+      - app-network
+
+  app:
+    build:
+      context: ./src
+      dockerfile: Dockerfile
+    restart: always
+    command: bash -c "python manage.py makemigrations wiki_app && python manage.py migrate && python manage.py runserver 0.0.0.0:8000"
+    environment:
+      DB_HOST: postgres
+      DB_PORT: ${DB_PORT:-5432}
+      DB_NAME: ${DB_NAME:-postgres}
+      DB_USER: ${DB_USER:-postgres}
+      DB_PASSWORD: ${DB_PASSWORD:-postgres}
+
+      GITHUB_TOKEN: ${GITHUB_TOKEN}
+      LLM_PROVIDER: ${LLM_PROVIDER}
+      LLM_APIKEY: ${LLM_APIKEY}
+      LLM_MODELNAME: ${LLM_MODELNAME}
+
+      TOKEN_PROCESSING_CHARACTER_LIMIT: ${TOKEN_PROCESSING_CHARACTER_LIMIT:-30000}
+      TOKEN_PROCESSING_MAX_RETRIES: ${TOKEN_PROCESSING_MAX_RETRIES:-3}
+      TOKEN_PROCESSING_REDUCE_CHAR_PER_RETRY: ${TOKEN_PROCESSING_REDUCE_CHAR_PER_RETRY:-3000}
+
+      CELERY_BROKER_URL: redis://redis:6379/0
+      CELERY_RESULT_BACKEND: redis://redis:6379/0
+    expose:
+      - "8000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_started
+    networks:
+      - app-network
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.app.rule=Host(`${DOMAIN_NAME}`)"
+      - "traefik.http.routers.app.entrypoints=websecure"
+      - "traefik.http.routers.app.tls.certresolver=myresolver"
+      - "traefik.http.services.app.loadbalancer.server.port=8000"
+
+  celery_worker:
+    build:
+      context: ./src
+      dockerfile: Dockerfile
+    restart: always
+    command: celery -A core_config worker -l info
+    environment:
+      DB_HOST: postgres
+      DB_PORT: ${DB_PORT:-5432}
+      DB_NAME: ${DB_NAME:-postgres}
+      DB_USER: ${DB_USER:-postgres}
+      DB_PASSWORD: ${DB_PASSWORD:-postgres}
+
+      GITHUB_TOKEN: ${GITHUB_TOKEN}
+      LLM_PROVIDER: ${LLM_PROVIDER}
+      LLM_APIKEY: ${LLM_APIKEY}
+      LLM_MODELNAME: ${LLM_MODELNAME}
+
+      TOKEN_PROCESSING_CHARACTER_LIMIT: ${TOKEN_PROCESSING_CHARACTER_LIMIT:-70000}
+      TOKEN_PROCESSING_MAX_RETRIES: ${TOKEN_PROCESSING_MAX_RETRIES:-3}
+      TOKEN_PROCESSING_REDUCE_CHAR_PER_RETRY: ${TOKEN_PROCESSING_REDUCE_CHAR_PER_RETRY:-3000}
+
+      CELERY_BROKER_URL: redis://redis:6379/0
+      CELERY_RESULT_BACKEND: redis://redis:6379/0
+    depends_on:
+      app:
+        condition: service_started
+      redis:
+        condition: service_started
+    networks:
+      - app-network
+
+  prometheus:
+    image: prom/prometheus:latest
+    restart: always
+    expose:
+      - "9090"
+    volumes:
+      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml
+      - prometheus_data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+    networks:
+      - app-network
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.prometheus.rule=Host(`prometheus.${DOMAIN_NAME}`)"
+      - "traefik.http.routers.prometheus.entrypoints=websecure"
+      - "traefik.http.routers.prometheus.tls.certresolver=myresolver"
+      - "traefik.http.routers.prometheus.middlewares=prometheus-auth"
+      - "traefik.http.middlewares.prometheus-auth.basicauth.users=${PROMETHEUS_AUTH}"
+      - "traefik.http.services.prometheus.loadbalancer.server.port=9090"
+
+  grafana:
+    image: grafana/grafana:latest
+    restart: always
+    expose:
+      - "3000"
+    environment:
+      GF_SECURITY_ADMIN_USER: ${GRAFANA_USER:-admin}
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_PASSWORD:-admin}
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./monitoring/grafana/provisioning:/etc/grafana/provisioning
+    depends_on:
+      - prometheus
+    networks:
+      - app-network
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.grafana.rule=Host(`grafana.${DOMAIN_NAME}`)"
+      - "traefik.http.routers.grafana.entrypoints=websecure"
+      - "traefik.http.routers.grafana.tls.certresolver=myresolver"
+      - "traefik.http.services.grafana.loadbalancer.server.port=3000"
+
+volumes:
+  postgres_data:
+  prometheus_data:
+  grafana_data:
+  portainer_data:
+  letsencrypt_data:
+
+networks:
+  app-network:
+    driver: bridge
