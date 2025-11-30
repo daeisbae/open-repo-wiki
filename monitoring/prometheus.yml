@@ -11,3 +11,8 @@ scrape_configs:
     metrics_path: /metrics
     static_configs:
       - targets: ['app:8000']
+
+  - job_name: 'cadvisor'
+    metrics_path: /metrics
+    static_configs:
+      - targets: ['cadvisor:8080']
