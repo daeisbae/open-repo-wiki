@@ -103,8 +103,6 @@ blacklisted_filter = [
     r'target',
     r'temp',
     r'theme',
-    r'tool',
-    r'test',
     r'third_party',
     r'tmp',
     r'vendor',
