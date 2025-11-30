@@ -14,6 +14,12 @@ from github.filterfile import whitelisted_file, blacklisted_file, whitelisted_fi
 from llm.llm_provider import LLMProvider
 from wiki_app.config import TokenProcessingConfig
 from wiki_app.allowed_languages import ALLOWED_LANGUAGES
+from wiki_app.metrics import (
+    REPO_SUMMARIZATIONS_TOTAL, REPO_PROCESSING_DURATION, STEP_DURATION, STEP_COMPLETED,
+    FILES_PROCESSED_TOTAL, FILE_SUMMARIZATION_DURATION, FOLDERS_PROCESSED_TOTAL,
+    FOLDER_SUMMARIZATION_DURATION, GITHUB_API_CALLS_TOTAL, GITHUB_API_DURATION,
+    REPOS_PROCESSING
+)
 from loguru import logger
 
 class InsertRepoService:
@@ -28,6 +34,10 @@ class InsertRepoService:
         self.dependencyParser = DependencyParser()
 
     async def insertRepository(self, owner: str, repo: str):
+        # Track processing start
+        REPOS_PROCESSING.inc()
+        repo_start_time = time.time()
+        
         # Create initial repository record to track status
         repo_url = f"https://github.com/{owner}/{repo}"
         repository, _ = await Repository.objects.aupdate_or_create(
@@ -45,95 +55,139 @@ class InsertRepoService:
             repository.process_status = msg
             await repository.asave(update_fields=['process_status'])
 
-        await update_status(f"Step 1: Fetching repository details for {owner}/{repo}...")
-        repo_details = await fetch_github_repo_details(owner, repo)
+        try:
+            # Step 1: Fetch repo details
+            step_start = time.time()
+            await update_status(f"Step 1: Fetching repository details for {owner}/{repo}...")
+            repo_details = await fetch_github_repo_details(owner, repo)
+            STEP_DURATION.labels(step='fetch_details').observe(time.time() - step_start)
+            STEP_COMPLETED.labels(step='fetch_details', status='success').inc()
+            GITHUB_API_CALLS_TOTAL.labels(endpoint='repo_details', status='success').inc()
 
-        if repo_details.language and repo_details.language not in ALLOWED_LANGUAGES:
-            await update_status(f"Language {repo_details.language} not supported. Skipping.")
-            return None
+            if repo_details.language and repo_details.language not in ALLOWED_LANGUAGES:
+                await update_status(f"Language {repo_details.language} not supported. Skipping.")
+                REPO_SUMMARIZATIONS_TOTAL.labels(owner=owner, repo=repo, status='skipped').inc()
+                return None
 
-        await update_status(f"Step 2: Inserting repository {repo_details.repo_owner}/{repo_details.repo_name} into DB...")
-        
-        # Upsert Repository
-        repository, created = await Repository.objects.aupdate_or_create(
-            url=repo_details.url,
-            defaults={
-                'owner': repo_details.repo_owner,
-                'repo': repo_details.repo_name,
-                'language': repo_details.language,
-                'descriptions': repo_details.description,
-                'default_branch': repo_details.default_branch,
-                'stars': repo_details.stars,
-                'forks': repo_details.forks,
-                'process_status': "Updating repository details..."
-            }
-        )
-        
-        # Handle Topics
-        for topic_name in repo_details.topics:
-            topic, _ = await Topic.objects.aget_or_create(topic_name=topic_name)
-            await repository.topics.aadd(topic)
-
-        if not created:
-             logger.info(f"Repository updated: {owner}/{repo}")
-
-        await update_status(f"Step 3: Inserting branch {repo_details.default_branch} into DB...")
-        branch, _ = await Branch.objects.aget_or_create(
-            repository=repository,
-            last_commit_sha=repo_details.sha,
-            defaults={
-                'name': repo_details.default_branch,
-                'commit_at': repo_details.commit_at,
-            }
-        )
-        
-        self.repoFileInfo = {
-            "repo_owner": owner,
-            "repo_name": repo,
-            "commit_sha": repo_details.sha
-        }
-
-        await update_status(f"Step 4: Fetching entire repo tree for {owner}/{repo} @ {repo_details.sha}...")
-        start_time = time.time()
-        fullTree = await fetch_github_repo_tree(owner, repo, repo_details.sha)
-        logger.info(f"Fetched repo tree in {time.time() - start_time:.2f}s")
-
-        await update_status("Step 5: Filtering tree in memory...")
-        filteredTree = self._filterTree(fullTree)
-
-        await update_status("Step 6: Inserting folder structure into DB...")
-        await self._insertFolders(filteredTree, branch, None)
-
-        await update_status("Step 7: Fetching files and summarizing folders in parallel...")
-        folder_progress = [0]  # Shared counter for folder progress
-        folder_ready_events = {path: asyncio.Event() for path in self.folderPathMap.keys()}
-
-        folders_start = time.time()
-        folder_summary_task = asyncio.create_task(
-            self._summarizeFolders(
-                filteredTree,
-                update_status,
-                folder_progress,
-                depth=0,
-                folder_ready_events=folder_ready_events
+            # Step 2: Insert repository
+            step_start = time.time()
+            await update_status(f"Step 2: Inserting repository {repo_details.repo_owner}/{repo_details.repo_name} into DB...")
+            
+            # Upsert Repository
+            repository, created = await Repository.objects.aupdate_or_create(
+                url=repo_details.url,
+                defaults={
+                    'owner': repo_details.repo_owner,
+                    'repo': repo_details.repo_name,
+                    'language': repo_details.language,
+                    'descriptions': repo_details.description,
+                    'default_branch': repo_details.default_branch,
+                    'stars': repo_details.stars,
+                    'forks': repo_details.forks,
+                    'process_status': "Updating repository details..."
+                }
             )
-        )
+            
+            # Handle Topics
+            for topic_name in repo_details.topics:
+                topic, _ = await Topic.objects.aget_or_create(topic_name=topic_name)
+                await repository.topics.aadd(topic)
 
-        files_start = time.time()
-        await self._fetchAndInsertFiles(filteredTree, update_status, folder_ready_events)
-        logger.info(f"Fetched and inserted files in {time.time() - files_start:.2f}s")
+            if not created:
+                 logger.info(f"Repository updated: {owner}/{repo}")
+            STEP_DURATION.labels(step='insert_repo').observe(time.time() - step_start)
+            STEP_COMPLETED.labels(step='insert_repo', status='success').inc()
 
-        repo_summary = await folder_summary_task
-        logger.info(f"Summarized folders in {time.time() - folders_start:.2f}s")
+            # Step 3: Insert branch
+            step_start = time.time()
+            await update_status(f"Step 3: Inserting branch {repo_details.default_branch} into DB...")
+            branch, _ = await Branch.objects.aget_or_create(
+                repository=repository,
+                last_commit_sha=repo_details.sha,
+                defaults={
+                    'name': repo_details.default_branch,
+                    'commit_at': repo_details.commit_at,
+                }
+            )
+            STEP_DURATION.labels(step='insert_branch').observe(time.time() - step_start)
+            STEP_COMPLETED.labels(step='insert_branch', status='success').inc()
+            
+            self.repoFileInfo = {
+                "repo_owner": owner,
+                "repo_name": repo,
+                "commit_sha": repo_details.sha
+            }
 
-        # Store repo-level summary on the branch so the UI can detect completion
-        if repo_summary:
-            await Branch.objects.filter(branch_id=branch.branch_id).aupdate(
-                ai_summary=repo_summary
+            # Step 4: Fetch repo tree
+            step_start = time.time()
+            await update_status(f"Step 4: Fetching entire repo tree for {owner}/{repo} @ {repo_details.sha}...")
+            fullTree = await fetch_github_repo_tree(owner, repo, repo_details.sha)
+            STEP_DURATION.labels(step='fetch_tree').observe(time.time() - step_start)
+            STEP_COMPLETED.labels(step='fetch_tree', status='success').inc()
+            GITHUB_API_CALLS_TOTAL.labels(endpoint='repo_tree', status='success').inc()
+            logger.info(f"Fetched repo tree in {time.time() - step_start:.2f}s")
+
+            # Step 5: Filter tree
+            step_start = time.time()
+            await update_status("Step 5: Filtering tree in memory...")
+            filteredTree = self._filterTree(fullTree)
+            STEP_DURATION.labels(step='filter_tree').observe(time.time() - step_start)
+            STEP_COMPLETED.labels(step='filter_tree', status='success').inc()
+
+            # Step 6: Insert folders
+            step_start = time.time()
+            await update_status("Step 6: Inserting folder structure into DB...")
+            await self._insertFolders(filteredTree, branch, None)
+            STEP_DURATION.labels(step='insert_folders').observe(time.time() - step_start)
+            STEP_COMPLETED.labels(step='insert_folders', status='success').inc()
+
+            # Step 7: Fetch files and summarize
+            await update_status("Step 7: Fetching files and summarizing folders in parallel...")
+            folder_progress = [0]  # Shared counter for folder progress
+            folder_ready_events = {path: asyncio.Event() for path in self.folderPathMap.keys()}
+
+            step_start = time.time()
+            folder_summary_task = asyncio.create_task(
+                self._summarizeFolders(
+                    filteredTree,
+                    update_status,
+                    folder_progress,
+                    depth=0,
+                    folder_ready_events=folder_ready_events
+                )
             )
 
-        await update_status("Done! Repository processed successfully.")
-        return repository
+            files_start = time.time()
+            await self._fetchAndInsertFiles(filteredTree, update_status, folder_ready_events)
+            STEP_DURATION.labels(step='summarize_files').observe(time.time() - files_start)
+            STEP_COMPLETED.labels(step='summarize_files', status='success').inc()
+            logger.info(f"Fetched and inserted files in {time.time() - files_start:.2f}s")
+
+            repo_summary = await folder_summary_task
+            STEP_DURATION.labels(step='summarize_folders').observe(time.time() - step_start)
+            STEP_COMPLETED.labels(step='summarize_folders', status='success').inc()
+            logger.info(f"Summarized folders in {time.time() - step_start:.2f}s")
+
+            # Store repo-level summary on the branch so the UI can detect completion
+            if repo_summary:
+                await Branch.objects.filter(branch_id=branch.branch_id).aupdate(
+                    ai_summary=repo_summary
+                )
+
+            await update_status("Done! Repository processed successfully.")
+            
+            # Record success metrics
+            REPO_SUMMARIZATIONS_TOTAL.labels(owner=owner, repo=repo, status='success').inc()
+            REPO_PROCESSING_DURATION.labels(owner=owner, repo=repo).observe(time.time() - repo_start_time)
+            
+            return repository
+            
+        except Exception as e:
+            logger.error(f"Failed to process repository {owner}/{repo}: {e}")
+            REPO_SUMMARIZATIONS_TOTAL.labels(owner=owner, repo=repo, status='failed').inc()
+            raise
+        finally:
+            REPOS_PROCESSING.dec()
 
     def _filterTree(self, tree: RepoTreeResult) -> RepoTreeResult:
         logger.info(f'Filtering tree at path "{tree.path or "/"}"...')
@@ -203,7 +257,11 @@ class InsertRepoService:
 
         async def summarize_file(file_path: str, content: Optional[str]):
             nonlocal progress_counter
-            if not content: return None
+            if not content:
+                FILES_PROCESSED_TOTAL.labels(status='skipped').inc()
+                return None
+            
+            file_start_time = time.time()
             
             # Parse dependencies from the file content
             dependencies = self.dependencyParser.parse(content, file_path)
@@ -224,6 +282,13 @@ class InsertRepoService:
                 finally:
                     retries += 1
                     wordDeduction += TokenProcessingConfig['reduceCharPerRetry']
+            
+            # Record file metrics
+            FILE_SUMMARIZATION_DURATION.observe(time.time() - file_start_time)
+            if aiSummary:
+                FILES_PROCESSED_TOTAL.labels(status='success').inc()
+            else:
+                FILES_PROCESSED_TOTAL.labels(status='failed').inc()
             
             # Update progress
             async with progress_lock:
@@ -332,6 +397,8 @@ class InsertRepoService:
         if not subfolders_summaries and not file_summaries:
             return None
 
+        folder_start_time = time.time()
+        
         # Combine all context for the LLM
         combined_parts = subfolders_summaries + file_summaries
         combined = "\n\n".join(combined_parts)
@@ -353,7 +420,13 @@ class InsertRepoService:
                 retries += 1
                 summaryDeduction += TokenProcessingConfig['reduceCharPerRetry']
 
-        if not aiSummary: return None
+        # Record folder metrics
+        FOLDER_SUMMARIZATION_DURATION.observe(time.time() - folder_start_time)
+        if aiSummary:
+            FOLDERS_PROCESSED_TOTAL.labels(status='success').inc()
+        else:
+            FOLDERS_PROCESSED_TOTAL.labels(status='failed').inc()
+            return None
 
         # Use the LLM-generated dependency graph with descriptive relationship labels
         dependency_graph = aiSummary.dependency_graph if hasattr(aiSummary, 'dependency_graph') else None

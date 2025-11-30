@@ -7,14 +7,7 @@ scrape_configs:
     static_configs:
       - targets: ['localhost:9090']
 
-  - job_name: 'postgres'
-    static_configs:
-      - targets: ['postgres:5432']
-
-  - job_name: 'redis'
-    static_configs:
-      - targets: ['redis:6379']
-
-  - job_name: 'app'
+  - job_name: 'django'
+    metrics_path: /metrics
     static_configs:
       - targets: ['app:8000']

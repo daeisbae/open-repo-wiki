@@ -49,6 +49,28 @@ services:
       - "traefik.http.routers.portainer.tls.certresolver=myresolver"
       - "traefik.http.services.portainer.loadbalancer.server.port=9000"
 
+  cadvisor:
+    image: gcr.io/cadvisor/cadvisor:latest
+    restart: always
+    privileged: true
+    volumes:
+      - /:/rootfs:ro
+      - /var/run:/var/run:ro
+      - /sys:/sys:ro
+      - /var/lib/docker/:/var/lib/docker:ro
+    expose:
+      - "8080"
+    networks:
+      - app-network
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.cadvisor.rule=Host(`cadvisor.${DOMAIN_NAME}`)"
+      - "traefik.http.routers.cadvisor.entrypoints=websecure"
+      - "traefik.http.routers.cadvisor.tls.certresolver=myresolver"
+      - "traefik.http.routers.cadvisor.middlewares=cadvisor-auth"
+      - "traefik.http.middlewares.cadvisor-auth.basicauth.users=${CADVISOR_AUTH}"
+      - "traefik.http.services.cadvisor.loadbalancer.server.port=8080"
+
   postgres:
     image: postgres:16
     restart: always
@@ -77,13 +99,17 @@ services:
       context: ./src
       dockerfile: Dockerfile
     restart: always
-    command: bash -c "python manage.py makemigrations wiki_app && python manage.py migrate && python manage.py runserver 0.0.0.0:8000"
+    command: bash -c "python manage.py makemigrations wiki_app && python manage.py migrate && python manage.py create_superuser && python manage.py runserver 0.0.0.0:8000"
     environment:
       DB_HOST: postgres
       DB_PORT: ${DB_PORT:-5432}
       DB_NAME: ${DB_NAME:-postgres}
       DB_USER: ${DB_USER:-postgres}
       DB_PASSWORD: ${DB_PASSWORD:-postgres}
+
+      DJANGO_SUPERUSER_USERNAME: ${DJANGO_SUPERUSER_USERNAME}
+      DJANGO_SUPERUSER_EMAIL: ${DJANGO_SUPERUSER_EMAIL:-}
+      DJANGO_SUPERUSER_PASSWORD: ${DJANGO_SUPERUSER_PASSWORD}
 
       GITHUB_TOKEN: ${GITHUB_TOKEN}
       LLM_PROVIDER: ${LLM_PROVIDER}
@@ -166,6 +192,30 @@ services:
       - "traefik.http.middlewares.prometheus-auth.basicauth.users=${PROMETHEUS_AUTH}"
       - "traefik.http.services.prometheus.loadbalancer.server.port=9090"
 
+  loki:
+    image: grafana/loki:latest
+    restart: always
+    expose:
+      - "3100"
+    volumes:
+      - loki_data:/loki
+    command: -config.file=/etc/loki/local-config.yaml
+    networks:
+      - app-network
+
+  promtail:
+    image: grafana/promtail:latest
+    restart: always
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - /var/lib/docker/containers:/var/lib/docker/containers:ro
+      - ./monitoring/promtail.yml:/etc/promtail/config.yml:ro
+    command: -config.file=/etc/promtail/config.yml
+    depends_on:
+      - loki
+    networks:
+      - app-network
+
   grafana:
     image: grafana/grafana:latest
     restart: always
@@ -179,6 +229,7 @@ services:
       - ./monitoring/grafana/provisioning:/etc/grafana/provisioning
     depends_on:
       - prometheus
+      - loki
     networks:
       - app-network
     labels:
@@ -194,6 +245,7 @@ volumes:
   grafana_data:
   portainer_data:
   letsencrypt_data:
+  loki_data:
 
 networks:
   app-network:
