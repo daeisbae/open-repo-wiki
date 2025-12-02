@@ -22,6 +22,8 @@ from wiki_app.metrics import (
 )
 from loguru import logger
 
+MAX_FILES_ALLOWED = 600
+
 class InsertRepoService:
     def __init__(self, llm_provider: LLMProvider):
         # Note: This service is instantiated per task, so it is not a singleton.
@@ -134,6 +136,19 @@ class InsertRepoService:
             STEP_DURATION.labels(step='filter_tree').observe(time.time() - step_start)
             STEP_COMPLETED.labels(step='filter_tree', status='success').inc()
 
+            # Guardrail: skip summarization for very large repositories
+            total_files = self._count_files(filteredTree)
+            if total_files > MAX_FILES_ALLOWED:
+                skip_msg = (
+                    f"Repository has {total_files} files, exceeding the limit of {MAX_FILES_ALLOWED}. "
+                    "Summarization skipped."
+                )
+                await update_status(skip_msg)
+                await Branch.objects.filter(branch_id=branch.branch_id).aupdate(ai_summary=skip_msg)
+                REPO_SUMMARIZATIONS_TOTAL.labels(owner=owner, repo=repo, status='skipped').inc()
+                REPO_PROCESSING_DURATION.labels(owner=owner, repo=repo).observe(time.time() - repo_start_time)
+                return repository
+
             # Step 6: Insert folders
             step_start = time.time()
             await update_status("Step 6: Inserting folder structure into DB...")
@@ -220,6 +235,12 @@ class InsertRepoService:
 
         for subdir in tree.subdirectories:
             await self._insertFolders(subdir, branch, folder)
+
+    def _count_files(self, tree: RepoTreeResult) -> int:
+        count = len(tree.files)
+        for subdir in tree.subdirectories:
+            count += self._count_files(subdir)
+        return count
 
     async def _fetchAndInsertFiles(self, rootTree: RepoTreeResult, update_status_func=None, folder_ready_events: Optional[Dict[str, asyncio.Event]] = None):
         all_file_paths = []
