@@ -10,6 +10,26 @@ import json
 
 FILE_RETURN_LIMIT = 600
 
+def _get_latest_branch(repository: Repository) -> Branch | None:
+    """
+    Return the most recent branch for a repository.
+    If none found, try to recover via folders/files.
+    """
+    branch = repository.branches.order_by('-created_at').first()
+    if branch:
+        return branch
+
+    folder = Folder.objects.filter(branch__repository=repository).select_related('branch').order_by('-branch__created_at').first()
+    if folder:
+        return folder.branch
+
+    file_obj = File.objects.filter(folder__branch__repository=repository).select_related('folder__branch').order_by('-folder__branch__created_at').first()
+    if file_obj:
+        return file_obj.folder.branch
+
+    return None
+
+
 def _is_repo_complete(repository: Repository, branch: Branch | None) -> bool:
     """
     Determine if a repository should be considered complete for rendering.
@@ -20,7 +40,12 @@ def _is_repo_complete(repository: Repository, branch: Branch | None) -> bool:
     if branch.ai_summary:
         return True
     status_text = (repository.process_status or "").lower()
-    return status_text.startswith("done")
+    if status_text.startswith("done"):
+        return True
+    # Self-healing: if we have persisted folders or files, consider it usable
+    if Folder.objects.filter(branch=branch).exists() or File.objects.filter(folder__branch=branch).exists():
+        return True
+    return False
 
 def index(request):
     return render(request, 'index.html')
@@ -79,7 +104,7 @@ def repo_detail(request, owner, repo):
     repository = get_object_or_404(Repository, owner=owner, repo=repo)
     
     # Get the latest branch
-    branch = repository.branches.order_by('-created_at').first()
+    branch = _get_latest_branch(repository)
     
     # Check if processing is complete (summary or explicit done status)
     if not _is_repo_complete(repository, branch):
@@ -179,7 +204,7 @@ def repo_status_stream(request, owner, repo):
                 from django.db import connection
                 connection.close()
                 repository = Repository.objects.get(owner=owner, repo=repo)
-                branch = repository.branches.order_by('-created_at').first()
+                branch = _get_latest_branch(repository)
                 
                 if _is_repo_complete(repository, branch):
                     # Send completion event
