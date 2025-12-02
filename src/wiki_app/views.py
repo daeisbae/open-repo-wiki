@@ -10,6 +10,18 @@ import json
 
 FILE_RETURN_LIMIT = 600
 
+def _is_repo_complete(repository: Repository, branch: Branch | None) -> bool:
+    """
+    Determine if a repository should be considered complete for rendering.
+    Large repos may not store a branch-level summary even when processing is done.
+    """
+    if not branch:
+        return False
+    if branch.ai_summary:
+        return True
+    status_text = (repository.process_status or "").lower()
+    return status_text.startswith("done")
+
 def index(request):
     return render(request, 'index.html')
 
@@ -69,8 +81,8 @@ def repo_detail(request, owner, repo):
     # Get the latest branch
     branch = repository.branches.order_by('-created_at').first()
     
-    # Check if processing is complete (i.e., summary exists)
-    if not branch or not branch.ai_summary:
+    # Check if processing is complete (summary or explicit done status)
+    if not _is_repo_complete(repository, branch):
         # If not ready, render processing page
         return render(request, 'processing.html', {
             'owner': owner,
@@ -169,7 +181,7 @@ def repo_status_stream(request, owner, repo):
                 repository = Repository.objects.get(owner=owner, repo=repo)
                 branch = repository.branches.order_by('-created_at').first()
                 
-                if branch and branch.ai_summary:
+                if _is_repo_complete(repository, branch):
                     # Send completion event
                     data = json.dumps({'status': 'complete'})
                     yield f"data: {data}\n\n"
