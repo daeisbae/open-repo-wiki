@@ -78,8 +78,11 @@ def repo_detail(request, owner, repo):
             'task_id': None # We don't have task ID here easily, but that's fine for polling
         })
     
-    total_files = File.objects.filter(folder__branch=branch).count()
-    include_files = total_files <= FILE_RETURN_LIMIT
+    file_qs = File.objects.filter(folder__branch=branch)
+    # Only inspect a small sample to decide if we should include files; avoid loading large file sets
+    sampled_ids = list(file_qs.values_list('file_id', flat=True)[: FILE_RETURN_LIMIT + 1])
+    include_files = len(sampled_ids) <= FILE_RETURN_LIMIT
+    total_files = len(sampled_ids) if include_files else None
 
     # Build file tree
     file_tree = build_tree(branch, include_files=include_files)

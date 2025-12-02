@@ -48,7 +48,11 @@
                         </h3>
                         {% if files_omitted %}
                         <p class="mt-2 text-xs text-gray-500 leading-snug">
-                            Showing folder summaries only ({{ total_files }} files summarized; limit {{ file_return_limit }}).
+                            Showing folder summaries only (over {{ file_return_limit }} files summarized).
+                        </p>
+                        {% else %}
+                        <p class="mt-2 text-xs text-gray-500 leading-snug">
+                            Showing {{ total_files }} files.
                         </p>
                         {% endif %}
                     </div>
@@ -68,7 +72,7 @@
 
                     {% if files_omitted %}
                     <div class="mb-4 p-4 bg-yellow-50 border border-yellow-200 text-yellow-800 rounded">
-                        File-level summaries are hidden because this repository has {{ total_files }} files, exceeding the {{ file_return_limit }} file limit. Browse folder summaries below.
+                        File-level summaries are hidden because this repository exceeds the {{ file_return_limit }} file limit. Browse folder summaries below.
                     </div>
                     {% endif %}
 
