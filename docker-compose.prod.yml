@@ -174,15 +174,15 @@ services:
     networks:
       - app-network
 
-  pgweb:
-    image: sosedoff/pgweb
+  pgadmin:
+    image: dpage/pgadmin4
     restart: always
     environment:
-      DATABASE_URL: postgres://${DB_USER:-postgres}:${DB_PASSWORD:-postgres}@postgres:${DB_PORT:-5432}/${DB_NAME:-postgres}?sslmode=disable
-      PGWEB_AUTH_USER: ${PGWEB_AUTH_USER:-admin}
-      PGWEB_AUTH_PASSWORD: ${PGWEB_AUTH_PASSWORD:-changeme}
+      PGADMIN_DEFAULT_EMAIL: ${PGADMIN_DEFAULT_EMAIL:-admin@example.com}
+      PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_DEFAULT_PASSWORD:-changeme}
+      PGADMIN_LISTEN_PORT: 80
     expose:
-      - "8081"
+      - "80"
     depends_on:
       postgres:
         condition: service_healthy
@@ -190,10 +190,10 @@ services:
       - app-network
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.pgweb.rule=Host(`pgweb.${DOMAIN_NAME}`)"
-      - "traefik.http.routers.pgweb.entrypoints=websecure"
-      - "traefik.http.routers.pgweb.tls.certresolver=myresolver"
-      - "traefik.http.services.pgweb.loadbalancer.server.port=8081"
+      - "traefik.http.routers.pgadmin.rule=Host(`pgadmin.${DOMAIN_NAME}`)"
+      - "traefik.http.routers.pgadmin.entrypoints=websecure"
+      - "traefik.http.routers.pgadmin.tls.certresolver=myresolver"
+      - "traefik.http.services.pgadmin.loadbalancer.server.port=80"
 
   prometheus:
     image: prom/prometheus:latest
