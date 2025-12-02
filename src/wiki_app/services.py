@@ -140,6 +140,7 @@ class InsertRepoService:
             total_files = self._count_files(filteredTree)
             if total_files > MAX_FILES_ALLOWED:
                 skip_msg = (
+                    f"This repository requires too much tokens, try with smaller file. "
                     f"Repository has {total_files} files, exceeding the limit of {MAX_FILES_ALLOWED}. "
                     "Summarization skipped."
                 )
