@@ -8,6 +8,8 @@ from .models import Repository, Branch, Folder, File
 import time
 import json
 
+FILE_RETURN_LIMIT = 600
+
 def index(request):
     return render(request, 'index.html')
 
@@ -76,18 +78,26 @@ def repo_detail(request, owner, repo):
             'task_id': None # We don't have task ID here easily, but that's fine for polling
         })
     
+    total_files = File.objects.filter(folder__branch=branch).count()
+    include_files = total_files <= FILE_RETURN_LIMIT
+
     # Build file tree
-    file_tree = build_tree(branch)
+    file_tree = build_tree(branch, include_files=include_files)
     
     return render(request, 'repo.html', {
         'repository': repository,
         'branch': branch,
-        'file_tree': file_tree
+        'file_tree': file_tree,
+        'files_omitted': not include_files,
+        'total_files': total_files,
+        'file_return_limit': FILE_RETURN_LIMIT
     })
 
-def build_tree(branch):
+def build_tree(branch, include_files=True):
     folders = Folder.objects.filter(branch=branch).select_related('parent_folder')
-    files = File.objects.filter(folder__branch=branch).select_related('folder')
+    files = File.objects.none()
+    if include_files:
+        files = File.objects.filter(folder__branch=branch).select_related('folder')
     
     # Map folder_id -> node
     folder_nodes = {}

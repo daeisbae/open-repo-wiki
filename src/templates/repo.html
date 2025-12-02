@@ -46,6 +46,11 @@
                         <h3 class="text-xs font-semibold text-gray-500 uppercase tracking-wider">
                             Files
                         </h3>
+                        {% if files_omitted %}
+                        <p class="mt-2 text-xs text-gray-500 leading-snug">
+                            Showing folder summaries only ({{ total_files }} files summarized; limit {{ file_return_limit }}).
+                        </p>
+                        {% endif %}
                     </div>
                     <div id="file-tree-container" class="space-y-1">
                         {% include "file_tree_node.html" with nodes=file_tree %}
@@ -59,6 +64,12 @@
                     <!-- Main Summary at top -->
                     {% if branch.ai_summary %}
                     <div id="main-summary" class="mb-8">{{ branch.ai_summary }}</div>
+                    {% endif %}
+
+                    {% if files_omitted %}
+                    <div class="mb-4 p-4 bg-yellow-50 border border-yellow-200 text-yellow-800 rounded">
+                        File-level summaries are hidden because this repository has {{ total_files }} files, exceeding the {{ file_return_limit }} file limit. Browse folder summaries below.
+                    </div>
                     {% endif %}
 
                     <!-- Collapsible Content Tree -->
