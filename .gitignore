@@ -52,3 +52,95 @@ Thumbs.db
 
 # Timing visualizations (generated)
 visualization-tree/
+
+# Terraform (Requirements 1.4)
+terraform.tfstate*
+.terraform/
+*.tfvars
+!*.tfvars.example
+.terraform.lock.hcl
+crash.log
+override.tf
+override.tf.json
+*_override.tf
+*_override.tf.json
+
+# ==============================================================================
+# Lambda deployment packages
+# ==============================================================================
+*.zip
+*_handler_env/
+jobs_handler_env/
+repos_handler_env/
+services/api/dist/
+services/processor/dist/
+
+# ==============================================================================
+# Python packages installed at root level (should use venv instead)
+# ==============================================================================
+aiohappyeyeballs/
+aiohappyeyeballs-*.dist-info/
+aiohttp/
+aiohttp-*.dist-info/
+aiosignal/
+aiosignal-*.dist-info/
+attr/
+attrs/
+attrs-*.dist-info/
+frozenlist/
+frozenlist-*.dist-info/
+idna/
+idna-*.dist-info/
+multidict/
+multidict-*.dist-info/
+propcache/
+propcache-*.dist-info/
+yarl/
+yarl-*.dist-info/
+typing_extensions.py
+typing_extensions-*.dist-info/
+
+# ==============================================================================
+# Debug/temp files
+# ==============================================================================
+*.json
+!package.json
+!package-lock.json
+!tsconfig.json
+!tsconfig.*.json
+!eslint.config.js
+.github_token_tmp
+
+# Debug and utility scripts
+debug_*.py
+cleanup_*.py
+analyze_*.py
+check_*.py
+clear_*.py
+measure_*.py
+
+# Duplicate/temp handler files at root
+lambda_handler.py
+jobs.py
+repos.py
+
+# ==============================================================================
+# Testing artifacts
+# ==============================================================================
+.hypothesis/
+.pytest_cache/
+.coverage
+htmlcov/
+.tox/
+.nox/
+
+# ==============================================================================
+# Frontend build artifacts (except for deployment)
+# ==============================================================================
+frontend/node_modules/
+frontend/dist/
+
+# ==============================================================================
+# Other
+# ==============================================================================
+.kiro/
