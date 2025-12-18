@@ -2,16 +2,16 @@
 
 ![OpenRepoWiki Example Image](https://github.com/daeisbae/open-repo-wiki/blob/aws-main/assets/openrepowiki.png)
 
-**OpenRepoWiki** automatically generates comprehensive wiki documentation for any GitHub repository. Stop reading through endless code files - get instant insights into what each file and folder does.
+**OpenRepoWiki** automatically generates comprehensive wiki documentation for any GitHub repository. Stop reading through endless code files and get instant insights into what each file and folder does.
 
 **Live Demo:** [openrepowiki.xyz](https://openrepowiki.xyz)
 
 ## ✨ Features
 
-- **Automated Wiki Generation** - Creates detailed summaries of repository purpose, functionality, and architecture
-- **Codebase Analysis** - Identifies key files, functions, and their roles within the project
-- **Dependency Graphs** - Visualizes how files relate to each other using Mermaid diagrams
-- **Code Block Links** - Sky-blue highlighted code blocks link directly to GitHub source
+- **Automated Wiki Generation:** Creates detailed summaries of repository purpose, functionality, and architecture
+- **Codebase Analysis:** Identifies key files, functions, and their roles within the project
+- **Dependency Graphs:** Visualizes how files relate to each other using Mermaid diagrams
+- **Code Block Links:** Sky blue highlighted code blocks link directly to GitHub source
 
 ## 🏗️ Architecture
 
@@ -90,7 +90,7 @@ openrepowiki3/
 - Terraform v1.5+
 - Node.js 18+
 - Python 3.11+
-- Docker (for building ECS container)
+- Docker for building ECS container
 
 ### 1. Configure Environment
 
@@ -161,18 +161,18 @@ This deployment includes multiple security layers:
 
 ## 📊 Monitoring
 
-- **CloudWatch Logs** - All Lambda, ECS, and API Gateway logs
-- **CloudWatch Metrics** - Request counts, latency, errors
-- **WAF Logs** - Blocked requests, rate limit hits
+- **CloudWatch Logs:** All Lambda, ECS, and API Gateway logs
+- **CloudWatch Metrics:** Request counts, latency, errors
+- **WAF Logs:** Blocked requests, rate limit hits
 
 ## 💰 Cost Optimization
 
 This architecture is designed for cost efficiency:
 
-- **Lambda** - Pay per invocation, no idle costs
-- **Fargate Spot** - Up to 70% savings on processing
-- **DynamoDB On-Demand** - Pay per request
-- **CloudFront** - Caches static assets globally
+- **Lambda:** Pay per invocation, no idle costs
+- **Fargate Spot:** Up to 70% savings on processing
+- **DynamoDB On Demand:** Pay per request
+- **CloudFront:** Caches static assets globally
 
 ## 📖 Documentation
 
@@ -184,7 +184,3 @@ This architecture is designed for cost efficiency:
 
 > [!CAUTION]
 > Analyzing large repositories can consume **1M+ input/output tokens** per repository. Use a cost-effective LLM provider like DeepSeek for production.
-
-## 📄 License
-
-Apache 2.0 - See [LICENSE](LICENSE) for details.
