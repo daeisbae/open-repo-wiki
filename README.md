@@ -1,56 +1,190 @@
-
 # OpenRepoWiki
 
-![OpenRepoWiki Example Image](https://github.com/daeisbae/open-repo-wiki/blob/v2-main/assets/openrepowiki.png)
+![OpenRepoWiki Example Image](https://github.com/daeisbae/open-repo-wiki/blob/aws-main/assets/openrepowiki.png)
 
-**OpenRepoWiki** is a tool that automatically generates a comprehensive wiki page for any given GitHub repository. I **hate** reading code, but I want to learn how to build stuffs from websites to databases. That's why I built **OpenRepoWiki**, where we can understand the purpose of that files and folders of a particular repository.
+**OpenRepoWiki** automatically generates comprehensive wiki documentation for any GitHub repository. Stop reading through endless code files - get instant insights into what each file and folder does.
 
-## Features
+**Live Demo:** [openrepowiki.xyz](https://openrepowiki.xyz)
 
-- **Automated Wiki Generation:** Creates a summarized overview of a repository's purpose, functionality, and core components.
-- **Codebase Analysis:** Analyzes the code structure, identifies key files and functions, and explains their roles within the project.
-- **Dependency Graph:** Shows how files in each folder relate to each other using Mermaid diagrams with labeled arrows (e.g., "provides config to", "transforms data for").
-- **Link To That Code Block:** The sky-blue highlighted code block will point to the Github link where it referenced.
+## ✨ Features
 
-## Installation
+- **Automated Wiki Generation** - Creates detailed summaries of repository purpose, functionality, and architecture
+- **Codebase Analysis** - Identifies key files, functions, and their roles within the project
+- **Dependency Graphs** - Visualizes how files relate to each other using Mermaid diagrams
+- **Code Block Links** - Sky-blue highlighted code blocks link directly to GitHub source
 
-### Requirements
+## 🏗️ Architecture
 
-- Either Google AI Studio or Deepseek API Key
-- Github API Key (To get more quota requesting the repository data)
-- Amazon S3 (You can ignore the parameters if you are going to use it locally. You need to use certificate for your Database if you are going to host it.)
-- Docker (If you are hosting locally)
+This branch (`aws-main`) runs on a fully serverless AWS infrastructure:
 
-### Configuration (Local)
-
-1. Copy `.env.example` to `.env`
-2. Configure just `github token` and `LLM configurations`
-3. Run `docker compose up` or `docker compose up -d` to hide the output
-
-
-#### Ollama Configuration Guide
-
-- It's recommended if you can run bigger LLM than 14b parameter.
-- You do not need to provide the API KEY
-- Set LLM_PROVIDER to Ollama (It is going to connect to default ollama endpoint)
-- Set LLM_MODELNAME to the model name you can see from Ollama using the command `ollama ls`
-- It is recommended to set TOKEN_PROCESSING_CHARACTER_LIMIT between 10000-20000 (Approx 300-600 lines of code) if you are using low param LLM (ex. 8b, 14b)
-
-**Example:**
-
-```
-LLM_PROVIDER=deepseek
-LLM_APIKEY=sk-....
-LLM_MODELNAME=deepseek-chat
+```mermaid
+flowchart TB
+    subgraph CDN["CloudFront CDN"]
+        CF["openrepowiki.xyz, api.*"]
+    end
+    
+    CF --> S3F["S3 (Frontend)"]
+    CF --> APIGW["API Gateway"]
+    
+    APIGW --> JobsLambda["Lambda: Jobs Handler"]
+    APIGW --> ReposLambda["Lambda: Repos Handler"]
+    APIGW --> AuthLambda["Lambda: Authorizer"]
+    
+    JobsLambda --> SFN["Step Functions"]
+    SFN --> ECS["ECS Fargate (Processor)"]
+    
+    ECS --> DDB["DynamoDB"]
+    ECS --> S3A["S3 (Artifacts)"]
+    ECS --> SM["Secrets Manager"]
 ```
 
-### Additional Information
+### Components
+
+| Component | Description |
+|-----------|-------------|
+| **CloudFront** | CDN with custom domain, SSL termination |
+| **S3** | Static frontend hosting + artifact storage |
+| **API Gateway** | REST API with Lambda authorizer, WAF protection |
+| **Lambda** | API handlers (jobs, repos) and request authorizer |
+| **Step Functions** | Orchestrates the repository processing workflow |
+| **ECS Fargate** | Runs the LLM-powered code summarization |
+| **DynamoDB** | Stores repository data, job status, summaries |
+| **WAF** | Rate limiting, bot protection, IP filtering |
+
+## 📁 Project Structure
+
+```
+openrepowiki3/
+├── frontend/               # React + Vite frontend
+│   └── src/
+│       ├── api/            # API client with request signing
+│       └── components/     # React components
+├── services/
+│   ├── api/                # Lambda API handlers
+│   │   └── handlers/       # Jobs, Repos, Authorizer
+│   └── processor/          # ECS container for processing
+├── shared/                 # Shared utilities
+│   ├── github/             # GitHub API client
+│   ├── llm/                # LLM providers (DeepSeek, Gemini, etc.)
+│   └── storage/            # DynamoDB client
+├── infra/
+│   └── terraform/
+│       ├── modules/        # Reusable Terraform modules
+│       │   ├── apigw/      # API Gateway + authorizer
+│       │   ├── cloudfront/ # CDN configuration
+│       │   ├── dynamodb/   # Database tables
+│       │   ├── ecs/        # Fargate cluster + task
+│       │   ├── lambda/     # Lambda functions
+│       │   ├── sfn/        # Step Functions
+│       │   ├── vpc/        # VPC + networking
+│       │   └── waf/        # Web Application Firewall
+│       └── env/prod/       # Production environment config
+└── docs/                   # Requirements & documentation
+```
+
+## 🚀 Quick Start
+
+### Prerequisites
+
+- AWS CLI configured with appropriate permissions
+- Terraform v1.5+
+- Node.js 18+
+- Python 3.11+
+- Docker (for building ECS container)
+
+### 1. Configure Environment
+
+```bash
+# Copy and configure environment variables
+cp .env.example .env
+
+# Required variables:
+# - LLM_PROVIDER (deepseek, gemini, ollama)
+# - LLM_APIKEY
+# - GITHUB_TOKEN
+```
+
+### 2. Deploy Infrastructure
+
+```bash
+cd infra/terraform/env/prod
+
+# Initialize Terraform
+terraform init
+
+# Review changes
+terraform plan
+
+# Apply infrastructure
+terraform apply
+```
+
+### 3. Build & Deploy Lambda
+
+```bash
+cd services/api
+./build_package.sh
+
+# Upload to Lambda (via Terraform or AWS CLI)
+aws lambda update-function-code \
+  --function-name openrepowiki-prod-jobs-handler \
+  --zip-file fileb://dist/api-lambda-package.zip
+```
+
+### 4. Build & Deploy Frontend
+
+```bash
+cd frontend
+
+# Set production API URL
+export VITE_API_URL=https://api.openrepowiki.xyz/v1
+export VITE_SIGNING_KEY=your-signing-key
+
+npm install
+npm run build:prod
+
+# Sync to S3
+aws s3 sync dist/ s3://openrepowiki-prod-frontend/
+```
+
+## 🔒 Security
+
+This deployment includes multiple security layers:
+
+| Layer | Protection |
+|-------|------------|
+| **WAF** | Rate limiting, AWS Managed Rules, bot detection |
+| **Lambda Authorizer** | HMAC-signed requests for POST endpoints |
+| **CORS** | Restricted to openrepowiki.xyz origin |
+| **VPC** | Private subnets for ECS, VPC endpoints |
+| **Secrets Manager** | Secure API keys and signing secrets |
+
+## 📊 Monitoring
+
+- **CloudWatch Logs** - All Lambda, ECS, and API Gateway logs
+- **CloudWatch Metrics** - Request counts, latency, errors
+- **WAF Logs** - Blocked requests, rate limit hits
+
+## 💰 Cost Optimization
+
+This architecture is designed for cost efficiency:
+
+- **Lambda** - Pay per invocation, no idle costs
+- **Fargate Spot** - Up to 70% savings on processing
+- **DynamoDB On-Demand** - Pay per request
+- **CloudFront** - Caches static assets globally
+
+## 📖 Documentation
+
+- [Requirements & Use Cases](docs/README.md)
+- [API Documentation](services/api/README.md)
+- [Frontend Guide](frontend/README.md)
+
+## ⚠️ Token Usage Warning
 
 > [!CAUTION]
-> Before using this, it can easily use 1 million input / output tokens per Repository. Hence it is recommended to use cheaper LLM.
+> Analyzing large repositories can consume **1M+ input/output tokens** per repository. Use a cost-effective LLM provider like DeepSeek for production.
 
-- If you are going to host it locally, you will only need to configure the Docker PostgreSQL container, Github API Key, and Google AI Studio or Deepseek API Key
+## 📄 License
 
-## Requirements and Documentation
-
-Refer [Documentation](https://github.com/daeisbae/open-repo-wiki/blob/main/docs/)
+Apache 2.0 - See [LICENSE](LICENSE) for details.
