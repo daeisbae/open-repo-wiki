@@ -120,9 +120,9 @@ clear_*.py
 measure_*.py
 
 # Duplicate/temp handler files at root
-lambda_handler.py
-jobs.py
-repos.py
+# lambda_handler.py
+# jobs.py
+# repos.py
 
 # ==============================================================================
 # Testing artifacts

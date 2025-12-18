@@ -167,6 +167,11 @@ class SummarizeStage:
                 repo_id, branch, folders, files, repo_info, folder_only_mode
             )
             
+            # Create root folder summary (aggregates top-level items)
+            await self._create_root_summary(
+                repo_id, branch, repo_info, repo_name
+            )
+            
             return SummarizeResult(
                 files_processed=files_processed,
                 folders_processed=folders_processed,
@@ -639,7 +644,8 @@ class SummarizeStage:
                 # Format the summary with usage header and dependency graph
                 summary_parts = [f"**{result.usage}**\n\n{result.summary}"]
                 
-                if result.dependency_graph:
+                # Only include dependency graph if it has actual relationships (contains -->)
+                if result.dependency_graph and "-->" in result.dependency_graph:
                     summary_parts.append(f"\n\n## Dependency Graph\n\n```mermaid\n{result.dependency_graph}\n```")
                 
                 return "".join(summary_parts)
@@ -651,6 +657,81 @@ class SummarizeStage:
             char_deduction += TOKEN_PROCESSING_CONFIG["reduce_char_per_retry"]
         
         return None
+
+    async def _create_root_summary(
+        self,
+        repo_id: str,
+        branch: str,
+        repo_info: Dict[str, str],
+        repo_name: str,
+    ) -> None:
+        """Create a synthetic root folder summary from top-level items.
+        
+        After all files and folders are processed, create a root node (path="")
+        that aggregates summaries from all top-level items.
+        
+        Args:
+            repo_id: Repository identifier.
+            branch: Branch name.
+            repo_info: Repository info for LLM context.
+            repo_name: Repository name for the root node name.
+        """
+        logger.info(f"Creating root folder summary for {repo_id}")
+        
+        # Query top-level nodes (parent_path == "")
+        top_level_nodes = await asyncio.to_thread(
+            self.dynamodb.query_tree, repo_id, branch, ""
+        )
+        
+        # Gather summaries from top-level items
+        child_summaries = []
+        if self.llm_provider:
+            for child in top_level_nodes:
+                if child.summary_ref:
+                    # Fetch summary content
+                    if child.summary_ref.startswith("repos/"):
+                        summary_content = await asyncio.to_thread(
+                            self.s3.get_page, child.summary_ref
+                        )
+                    else:
+                        summary_content = child.summary_ref
+                    
+                    if summary_content:
+                        child_summaries.append(
+                            f"Summary of {child.node_type.value} {child.name}:\n{summary_content}"
+                        )
+        
+        # Generate root summary using LLM
+        summary = None
+        if child_summaries and self.llm_provider:
+            summary = await self._generate_folder_summary(
+                child_summaries, "", repo_info  # path="" for root
+            )
+        
+        # Determine summary_ref
+        summary_ref = None
+        if summary:
+            if len(summary) > 4000:
+                summary_ref = await asyncio.to_thread(
+                    self.s3.put_page, repo_id, branch, "", summary
+                )
+            else:
+                summary_ref = summary
+        
+        # Create and store root node
+        root_node = TreeNode(
+            repo_id=repo_id,
+            branch=branch,
+            path="",  # Root path is empty string
+            node_type=NodeType.FOLDER,
+            parent_path="",  # Root has no parent
+            name=repo_name,  # Use repo name as the root folder name
+            sha="",  # No SHA for synthetic root
+            summary_ref=summary_ref,
+        )
+        
+        await asyncio.to_thread(self.dynamodb.put_node, root_node)
+        logger.info(f"Root folder summary created for {repo_id}")
 
     async def _update_progress(
         self,

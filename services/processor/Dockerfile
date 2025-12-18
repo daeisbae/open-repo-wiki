@@ -21,6 +21,9 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 # Copy requirements first for better layer caching
 COPY services/processor/requirements.txt /app/services/processor/requirements.txt
 
+# Upgrade pip to fix CVE-2025-8869 (tar symlink extraction vulnerability)
+RUN pip install --no-cache-dir --upgrade pip>=25.3
+
 # Install Python dependencies
 RUN pip install --no-cache-dir -r /app/services/processor/requirements.txt
 

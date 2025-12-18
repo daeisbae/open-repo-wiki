@@ -10,7 +10,7 @@
  */
 
 import { BrowserRouter, Routes, Route, useNavigate, useParams, useSearchParams } from 'react-router-dom';
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { RepoForm } from './components/RepoForm';
 import { ProgressView } from './components/ProgressView';
 import { TreeBrowser, type TreeNode } from './components/TreeBrowser';
@@ -104,10 +104,36 @@ function RepoPage() {
   const branch = searchParams.get('branch') || 'main';
   const currentPath = searchParams.get('path') || '';
 
-  const [selectedNode, setSelectedNode] = useState<TreeNode | null>(null);
+  // Create a synthetic root node for initial display
+  const createRootNode = useCallback((): TreeNode | null => {
+    if (!repo) return null;
+    return {
+      type: 'folder',
+      name: repo,
+      path: '',
+      parentPath: '',
+      hasSummary: true
+    };
+  }, [repo]);
+
+  // Initialize with root node if no path is specified
+  const [selectedNode, setSelectedNode] = useState<TreeNode | null>(() => {
+    // If there's no path in URL, start with root node
+    if (!currentPath) {
+      return createRootNode();
+    }
+    return null;
+  });
   const [repoSummary] = useState<string | undefined>(undefined);
 
   const repoId = `${owner}/${repo}`;
+
+  // Update selected node when URL path changes
+  useEffect(() => {
+    if (!currentPath && !selectedNode) {
+      setSelectedNode(createRootNode());
+    }
+  }, [currentPath, selectedNode, createRootNode]);
 
   const handleSelectNode = useCallback((node: TreeNode) => {
     setSelectedNode(node);
@@ -130,8 +156,9 @@ function RepoPage() {
       prev.delete('path');
       return prev;
     });
-    setSelectedNode(null);
-  }, [setSearchParams]);
+    // Set root node as selected when going to root
+    setSelectedNode(createRootNode());
+  }, [setSearchParams, createRootNode]);
 
   const handleExpandRequest = useCallback((node: TreeNode) => {
     console.log('Expand request for:', node.path);
@@ -143,7 +170,7 @@ function RepoPage() {
   }
 
   return (
-    <div className="min-h-screen bg-white flex flex-col">
+    <div className="h-screen bg-white flex flex-col overflow-hidden">
       <Breadcrumb
         owner={owner}
         repo={repo}
@@ -151,8 +178,8 @@ function RepoPage() {
         onNavigate={handleNavigate}
         onGoToRoot={handleGoToRoot}
       />
-      <div className="flex-1 max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-8">
-        <div className="flex flex-col lg:grid lg:grid-cols-12 lg:gap-8 h-full">
+      <div className="flex-1 max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-8 overflow-hidden">
+        <div className="flex flex-col lg:grid lg:grid-cols-12 lg:gap-8 h-full overflow-hidden">
           <TreeBrowser
             repoId={repoId}
             branch={branch}

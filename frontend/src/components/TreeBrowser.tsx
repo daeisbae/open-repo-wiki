@@ -6,10 +6,22 @@ import { useState, useEffect } from 'react';
 function sortNodes(nodes: TreeNode[]): TreeNode[] {
   return [...nodes].sort((a, b) => {
     // Folders come before files
-    if (a.type === 'folder' && b.type === 'file') return 1;
-    if (a.type === 'file' && b.type === 'folder') return -1;
+    if (a.type === 'folder' && b.type === 'file') return -1;
+    if (a.type === 'file' && b.type === 'folder') return 1;
     // Alphabetical within same type
     return a.name.localeCompare(b.name);
+  });
+}
+
+/**
+ * Filter nodes to only show files with summaries (folders are always shown).
+ */
+function filterSummarizedNodes(nodes: TreeNode[]): TreeNode[] {
+  return nodes.filter((node) => {
+    // Always show folders
+    if (node.type === 'folder') return true;
+    // Only show files that have summaries
+    return node.hasSummary;
   });
 }
 
@@ -48,7 +60,8 @@ function TreeNodeItem({
   fetchTree,
   level,
 }: TreeNodeItemProps) {
-  const [isOpen, setIsOpen] = useState(level < 2);
+  // All folders start expanded to show full hierarchy
+  const [isOpen, setIsOpen] = useState(true);
   const [children, setChildren] = useState<TreeNode[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [hasLoaded, setHasLoaded] = useState(false);
@@ -61,7 +74,8 @@ function TreeNodeItem({
     setIsLoading(true);
     try {
       const nodes = await fetchTree(repoId, branch, node.path);
-      setChildren(sortNodes(nodes));
+      // Filter out root node (path="") to prevent recursive nesting, and filter non-summarized files
+      setChildren(filterSummarizedNodes(sortNodes(nodes)).filter(n => n.path !== ''));
       setHasLoaded(true);
     } catch (err) {
       console.error('Failed to load children:', err);
@@ -70,11 +84,12 @@ function TreeNodeItem({
     }
   };
 
+  // Auto-load children on mount for folders
   useEffect(() => {
-    if (isOpen && isFolder && !hasLoaded) {
+    if (isFolder && !hasLoaded) {
       loadChildren();
     }
-  }, [isOpen]);
+  }, [isFolder, hasLoaded]);
 
   const handleClick = (e: React.MouseEvent) => {
     e.preventDefault();
@@ -168,28 +183,26 @@ export function TreeBrowser({
   selectedPath,
   fetchTree,
 }: TreeBrowserProps) {
-  const [rootNodes, setRootNodes] = useState<TreeNode[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [totalFiles, setTotalFiles] = useState(0);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
+  // Extract repo name from repoId (owner/name)
+  const repoName = repoId.split('/')[1] || repoId;
+
+  // Root node for the repository
+  const rootNode: TreeNode = {
+    type: 'folder',
+    name: repoName,
+    path: '',
+    parentPath: '',
+    hasSummary: true,
+  };
+
   useEffect(() => {
-    const loadRoot = async () => {
-      setIsLoading(true);
-      try {
-        const nodes = await fetchTree(repoId, branch, '');
-        setRootNodes(sortNodes(nodes));
-        // Count files for display
-        const fileCount = nodes.filter((n) => n.type === 'file').length;
-        setTotalFiles(fileCount);
-      } catch (err) {
-        console.error('Failed to load tree:', err);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-    loadRoot();
-  }, [repoId, branch, fetchTree]);
+    // Small delay to show loading indicator - root node will load its own children
+    const timer = setTimeout(() => setIsLoading(false), 100);
+    return () => clearTimeout(timer);
+  }, [repoId, branch]);
 
   // Close mobile menu when a node is selected
   const handleSelectNode = (node: TreeNode) => {
@@ -216,9 +229,6 @@ export function TreeBrowser({
             )}
           </svg>
           <span>Files</span>
-          <span className="text-xs text-gray-500">
-            {isLoading ? '...' : `(${totalFiles})`}
-          </span>
         </button>
       </div>
 
@@ -239,18 +249,17 @@ export function TreeBrowser({
             </div>
           ) : (
             <ul className="space-y-1">
-              {rootNodes.map((node) => (
-                <TreeNodeItem
-                  key={node.path}
-                  node={node}
-                  repoId={repoId}
-                  branch={branch}
-                  onSelectNode={handleSelectNode}
-                  selectedPath={selectedPath}
-                  fetchTree={fetchTree}
-                  level={0}
-                />
-              ))}
+              {/* Root node */}
+              <TreeNodeItem
+                key="__root__"
+                node={rootNode}
+                repoId={repoId}
+                branch={branch}
+                onSelectNode={handleSelectNode}
+                selectedPath={selectedPath}
+                fetchTree={fetchTree}
+                level={0}
+              />
             </ul>
           )}
         </nav>
@@ -269,18 +278,17 @@ export function TreeBrowser({
               </div>
             ) : (
               <ul className="space-y-1">
-                {rootNodes.map((node) => (
-                  <TreeNodeItem
-                    key={node.path}
-                    node={node}
-                    repoId={repoId}
-                    branch={branch}
-                    onSelectNode={onSelectNode}
-                    selectedPath={selectedPath}
-                    fetchTree={fetchTree}
-                    level={0}
-                  />
-                ))}
+                {/* Root node */}
+                <TreeNodeItem
+                  key="__root__"
+                  node={rootNode}
+                  repoId={repoId}
+                  branch={branch}
+                  onSelectNode={onSelectNode}
+                  selectedPath={selectedPath}
+                  fetchTree={fetchTree}
+                  level={0}
+                />
               </ul>
             )}
           </div>
