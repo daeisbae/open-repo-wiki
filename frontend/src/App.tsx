@@ -152,7 +152,7 @@ function RepoPage() {
         onGoToRoot={handleGoToRoot}
       />
       <div className="flex-1 max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-8">
-        <div className="lg:grid lg:grid-cols-12 lg:gap-8 h-full">
+        <div className="flex flex-col lg:grid lg:grid-cols-12 lg:gap-8 h-full">
           <TreeBrowser
             repoId={repoId}
             branch={branch}

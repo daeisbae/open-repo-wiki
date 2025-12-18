@@ -158,6 +158,7 @@ export function TreeBrowser({
   const [rootNodes, setRootNodes] = useState<TreeNode[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [totalFiles, setTotalFiles] = useState(0);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   useEffect(() => {
     const loadRoot = async () => {
@@ -177,18 +178,45 @@ export function TreeBrowser({
     loadRoot();
   }, [repoId, branch, fetchTree]);
 
+  // Close mobile menu when a node is selected
+  const handleSelectNode = (node: TreeNode) => {
+    onSelectNode(node);
+    setIsMobileMenuOpen(false);
+  };
+
   return (
-    <aside className="hidden lg:block lg:col-span-3 h-full overflow-y-auto py-6">
-      <nav className="space-y-1" aria-label="Sidebar">
-        <div className="pb-4 mb-4 border-b border-gray-200">
-          <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider">
-            Files
-          </h3>
-          <p className="mt-2 text-xs text-gray-500 leading-snug">
-            {isLoading ? 'Loading...' : `Showing ${totalFiles} items.`}
-          </p>
-        </div>
-        <div className="space-y-1">
+    <>
+      {/* Mobile hamburger button */}
+      <div className="lg:hidden flex items-center justify-between py-3 px-1 border-b border-gray-200">
+        <button
+          onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+          className="flex items-center gap-2 text-sm font-medium text-gray-700 hover:text-gray-900"
+          aria-expanded={isMobileMenuOpen}
+          aria-controls="mobile-tree-menu"
+        >
+          {/* Hamburger icon */}
+          <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            {isMobileMenuOpen ? (
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            ) : (
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+            )}
+          </svg>
+          <span>Files</span>
+          <span className="text-xs text-gray-500">
+            {isLoading ? '...' : `(${totalFiles})`}
+          </span>
+        </button>
+      </div>
+
+      {/* Mobile collapsible menu */}
+      <aside
+        id="mobile-tree-menu"
+        className={`lg:hidden overflow-y-auto transition-all duration-200 ease-in-out ${
+          isMobileMenuOpen ? 'max-h-96 py-3 border-b border-gray-200' : 'max-h-0 overflow-hidden'
+        }`}
+      >
+        <nav className="space-y-1 px-1" aria-label="Mobile Sidebar">
           {isLoading ? (
             <div className="flex items-center justify-center py-4">
               <svg className="h-5 w-5 animate-spin text-gray-400" viewBox="0 0 24 24">
@@ -204,7 +232,7 @@ export function TreeBrowser({
                   node={node}
                   repoId={repoId}
                   branch={branch}
-                  onSelectNode={onSelectNode}
+                  onSelectNode={handleSelectNode}
                   selectedPath={selectedPath}
                   fetchTree={fetchTree}
                   level={0}
@@ -212,8 +240,47 @@ export function TreeBrowser({
               ))}
             </ul>
           )}
-        </div>
-      </nav>
-    </aside>
+        </nav>
+      </aside>
+
+      {/* Desktop sidebar - always visible on lg+ */}
+      <aside className="hidden lg:block lg:col-span-3 h-full overflow-y-auto py-6 border-r border-gray-200">
+        <nav className="space-y-1" aria-label="Sidebar">
+          <div className="pb-4 mb-4 border-b border-gray-200">
+            <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider">
+              Files
+            </h3>
+            <p className="mt-2 text-xs text-gray-500 leading-snug">
+              {isLoading ? 'Loading...' : `Showing ${totalFiles} items.`}
+            </p>
+          </div>
+          <div className="space-y-1">
+            {isLoading ? (
+              <div className="flex items-center justify-center py-4">
+                <svg className="h-5 w-5 animate-spin text-gray-400" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                </svg>
+              </div>
+            ) : (
+              <ul className="space-y-1">
+                {rootNodes.map((node) => (
+                  <TreeNodeItem
+                    key={node.path}
+                    node={node}
+                    repoId={repoId}
+                    branch={branch}
+                    onSelectNode={onSelectNode}
+                    selectedPath={selectedPath}
+                    fetchTree={fetchTree}
+                    level={0}
+                  />
+                ))}
+              </ul>
+            )}
+          </div>
+        </nav>
+      </aside>
+    </>
   );
 }
