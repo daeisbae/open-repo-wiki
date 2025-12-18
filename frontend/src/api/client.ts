@@ -13,6 +13,7 @@
 import type { Job } from '../components/ProgressView';
 import type { TreeNode } from '../components/TreeBrowser';
 import type { PageContent } from '../components/PageViewer';
+import { generateSignature } from './signing';
 
 // API base URL - can be configured via environment variable
 const API_BASE_URL = import.meta.env.VITE_API_URL || '/api';
@@ -76,11 +77,22 @@ export async function createJob(
   repo: string,
   branch?: string
 ): Promise<CreateJobResult> {
+  // Generate request signature for authorization
+  const { timestamp, signature } = await generateSignature('POST', '/jobs');
+
+  const headers: Record<string, string> = {
+    'Content-Type': 'application/json',
+  };
+
+  // Only include auth headers if signing is enabled
+  if (signature) {
+    headers['X-Timestamp'] = timestamp;
+    headers['X-Signature'] = signature;
+  }
+
   const response = await fetch(`${API_BASE_URL}/jobs`, {
     method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
+    headers,
     body: JSON.stringify({
       owner,
       repo,

@@ -51,3 +51,25 @@ output "repos_handler_log_group_arn" {
   description = "CloudWatch Log Group ARN for repos handler"
   value       = aws_cloudwatch_log_group.repos_handler.arn
 }
+
+# Authorizer outputs
+output "authorizer_arn" {
+  description = "ARN of the authorizer Lambda function"
+  value       = length(aws_lambda_function.authorizer) > 0 ? aws_lambda_function.authorizer[0].arn : null
+}
+
+output "authorizer_name" {
+  description = "Name of the authorizer Lambda function"
+  value       = length(aws_lambda_function.authorizer) > 0 ? aws_lambda_function.authorizer[0].function_name : null
+}
+
+output "authorizer_invoke_arn" {
+  description = "Invoke ARN of the authorizer Lambda function"
+  value       = length(aws_lambda_function.authorizer) > 0 ? aws_lambda_function.authorizer[0].invoke_arn : null
+}
+
+output "authorizer_log_group_name" {
+  description = "CloudWatch Log Group name for authorizer"
+  value       = length(aws_cloudwatch_log_group.authorizer) > 0 ? aws_cloudwatch_log_group.authorizer[0].name : null
+}
+

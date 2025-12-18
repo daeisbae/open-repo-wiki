@@ -140,3 +140,57 @@ resource "aws_lambda_permission" "repos_handler_apigw" {
   principal     = "apigateway.amazonaws.com"
   source_arn    = "${var.api_gateway_execution_arn}/*/*"
 }
+
+# =============================================================================
+# Lambda Function: Request Authorizer
+# Validates HMAC-signed requests for protected endpoints
+# =============================================================================
+
+resource "aws_cloudwatch_log_group" "authorizer" {
+  count             = var.enable_authorizer ? 1 : 0
+  name              = "/aws/lambda/${local.name_prefix}-authorizer"
+  retention_in_days = var.log_retention_days
+
+  tags = merge(var.tags, {
+    Name = "${local.name_prefix}-authorizer-logs"
+  })
+}
+
+resource "aws_lambda_function" "authorizer" {
+  count         = var.enable_authorizer ? 1 : 0
+  function_name = "${local.name_prefix}-authorizer"
+  description   = "Request authorizer for protected API endpoints"
+  role          = var.authorizer_execution_role_arn != "" ? var.authorizer_execution_role_arn : var.lambda_execution_role_arn
+  handler       = var.authorizer_handler
+  runtime       = var.runtime
+  timeout       = 10  # Authorizers should be fast
+  memory_size   = 128
+
+  # Use placeholder for initial deployment, actual code deployed separately
+  filename         = var.authorizer_package_path != "" ? var.authorizer_package_path : data.archive_file.placeholder.output_path
+  source_code_hash = var.authorizer_package_path != "" ? var.authorizer_source_hash : data.archive_file.placeholder.output_base64sha256
+
+  environment {
+    variables = merge({
+      SIGNING_SECRET_ARN = var.authorizer_secret_arn
+      LOG_LEVEL          = var.lambda_log_level
+    }, var.additional_env_vars)
+  }
+
+  # Ensure log group exists before function
+  depends_on = [aws_cloudwatch_log_group.authorizer]
+
+  tags = merge(var.tags, {
+    Name = "${local.name_prefix}-authorizer"
+  })
+}
+
+resource "aws_lambda_permission" "authorizer_apigw" {
+  count         = var.enable_authorizer && var.create_api_gateway_permissions ? 1 : 0
+  statement_id  = "AllowAPIGatewayInvoke"
+  action        = "lambda:InvokeFunction"
+  function_name = aws_lambda_function.authorizer[0].function_name
+  principal     = "apigateway.amazonaws.com"
+  source_arn    = "${var.api_gateway_execution_arn}/authorizers/*"
+}
+

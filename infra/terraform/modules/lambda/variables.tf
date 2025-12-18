@@ -147,8 +147,46 @@ variable "additional_env_vars" {
   default     = {}
 }
 
+# Authorizer configuration
+variable "enable_authorizer" {
+  description = "Whether to create the request authorizer Lambda"
+  type        = bool
+  default     = false
+}
+
+variable "authorizer_handler" {
+  description = "Handler for authorizer Lambda function"
+  type        = string
+  default     = "services.api.handlers.authorizer.handler"
+}
+
+variable "authorizer_package_path" {
+  description = "Local path to authorizer deployment package"
+  type        = string
+  default     = ""
+}
+
+variable "authorizer_source_hash" {
+  description = "Source code hash for authorizer"
+  type        = string
+  default     = null
+}
+
+variable "authorizer_secret_arn" {
+  description = "ARN of the Secrets Manager secret containing the signing key"
+  type        = string
+  default     = ""
+}
+
+variable "authorizer_execution_role_arn" {
+  description = "ARN of the Lambda execution role for authorizer (if different from main role)"
+  type        = string
+  default     = ""
+}
+
 variable "tags" {
   description = "Additional tags"
   type        = map(string)
   default     = {}
 }
+

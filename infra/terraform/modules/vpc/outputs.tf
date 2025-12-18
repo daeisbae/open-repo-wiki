@@ -74,3 +74,35 @@ output "sts_endpoint_id" {
   description = "ID of the STS VPC endpoint"
   value       = aws_vpc_endpoint.sts.id
 }
+
+# VPC Flow Logs Outputs
+output "flow_log_id" {
+  description = "ID of the VPC Flow Log"
+  value       = length(aws_flow_log.main) > 0 ? aws_flow_log.main[0].id : null
+}
+
+output "flow_log_log_group_arn" {
+  description = "ARN of the CloudWatch Log Group for VPC Flow Logs"
+  value       = length(aws_cloudwatch_log_group.vpc_flow_logs) > 0 ? aws_cloudwatch_log_group.vpc_flow_logs[0].arn : null
+}
+
+# Security Services Outputs
+output "guardduty_detector_id" {
+  description = "ID of the GuardDuty detector"
+  value       = length(aws_guardduty_detector.main) > 0 ? aws_guardduty_detector.main[0].id : null
+}
+
+output "inspector_enabled" {
+  description = "Whether AWS Inspector is enabled"
+  value       = var.enable_inspector
+}
+
+output "config_bucket_id" {
+  description = "ID of the AWS Config S3 bucket"
+  value       = length(aws_s3_bucket.config) > 0 ? aws_s3_bucket.config[0].id : null
+}
+
+output "config_recorder_id" {
+  description = "ID of the AWS Config recorder"
+  value       = length(aws_config_configuration_recorder.main) > 0 ? aws_config_configuration_recorder.main[0].id : null
+}

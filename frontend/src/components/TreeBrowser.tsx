@@ -1,5 +1,18 @@
 import { useState, useEffect } from 'react';
 
+/**
+ * Sort nodes: folders first, then files, alphabetically within each group.
+ */
+function sortNodes(nodes: TreeNode[]): TreeNode[] {
+  return [...nodes].sort((a, b) => {
+    // Folders come before files
+    if (a.type === 'folder' && b.type === 'file') return 1;
+    if (a.type === 'file' && b.type === 'folder') return -1;
+    // Alphabetical within same type
+    return a.name.localeCompare(b.name);
+  });
+}
+
 export interface TreeNode {
   type: 'folder' | 'file';
   name: string;
@@ -48,7 +61,7 @@ function TreeNodeItem({
     setIsLoading(true);
     try {
       const nodes = await fetchTree(repoId, branch, node.path);
-      setChildren(nodes);
+      setChildren(sortNodes(nodes));
       setHasLoaded(true);
     } catch (err) {
       console.error('Failed to load children:', err);
@@ -165,7 +178,7 @@ export function TreeBrowser({
       setIsLoading(true);
       try {
         const nodes = await fetchTree(repoId, branch, '');
-        setRootNodes(nodes);
+        setRootNodes(sortNodes(nodes));
         // Count files for display
         const fileCount = nodes.filter((n) => n.type === 'file').length;
         setTotalFiles(fileCount);
@@ -246,14 +259,6 @@ export function TreeBrowser({
       {/* Desktop sidebar - always visible on lg+ */}
       <aside className="hidden lg:block lg:col-span-3 h-full overflow-y-auto py-6 border-r border-gray-200">
         <nav className="space-y-1" aria-label="Sidebar">
-          <div className="pb-4 mb-4 border-b border-gray-200">
-            <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider">
-              Files
-            </h3>
-            <p className="mt-2 text-xs text-gray-500 leading-snug">
-              {isLoading ? 'Loading...' : `Showing ${totalFiles} items.`}
-            </p>
-          </div>
           <div className="space-y-1">
             {isLoading ? (
               <div className="flex items-center justify-center py-4">

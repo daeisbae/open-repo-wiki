@@ -78,8 +78,34 @@ variable "api_gateway_cloudwatch_role_arn" {
   default     = ""
 }
 
+# Request Authorizer Configuration
+variable "enable_request_authorizer" {
+  description = "Whether to enable the request authorizer for protected endpoints"
+  type        = bool
+  default     = false
+}
+
+variable "authorizer_invoke_arn" {
+  description = "Invoke ARN of the authorizer Lambda function"
+  type        = string
+  default     = ""
+}
+
+variable "authorizer_credentials_arn" {
+  description = "ARN of IAM role for API Gateway to invoke the authorizer"
+  type        = string
+  default     = ""
+}
+
+variable "authorizer_cache_ttl" {
+  description = "TTL in seconds for authorizer result caching (0 to disable)"
+  type        = number
+  default     = 300
+}
+
 variable "tags" {
   description = "Additional tags"
   type        = map(string)
   default     = {}
 }
+
