@@ -19,6 +19,8 @@ import { Breadcrumb } from './components/Breadcrumb';
 import { createJob, getJob, getTree, getPage } from './api/client';
 import './App.css';
 
+
+
 /**
  * Home page with repository submission form.
  * Requirements: 8.1
@@ -120,7 +122,6 @@ function RepoPage() {
       prev.set('path', path);
       return prev;
     });
-    // Find and select the node at this path
     setSelectedNode(null);
   }, [setSearchParams]);
 
@@ -133,7 +134,6 @@ function RepoPage() {
   }, [setSearchParams]);
 
   const handleExpandRequest = useCallback((node: TreeNode) => {
-    // Future: implement on-demand summarization
     console.log('Expand request for:', node.path);
   }, []);
 
@@ -173,6 +173,8 @@ function RepoPage() {
     </div>
   );
 }
+
+
 
 /**
  * Main App component with router configuration.

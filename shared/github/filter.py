@@ -21,7 +21,7 @@ WHITELISTED_FILE_PATTERNS = [
     r'\.ts$',
     r'\.java$',
     r'\.scala$',
-    r'readme\.md',  # Lowercase since matching is case-insensitive
+    # Removed readme.md - redundant with folder summaries
     r'\.cpp$',
     r'\.cc$',
     r'\.cxx$',
@@ -51,6 +51,28 @@ BLACKLISTED_FILE_PATTERNS = [
     r'\.min\.js',
     r'\.spec',  # *.spec.js, *.spec.ts
     r'types',
+    # Skip documentation/config files - redundant with folder summaries
+    r'readme\.md$',
+    r'license',
+    r'changelog',
+    r'contributing',
+    r'code_of_conduct',
+    r'package\.json$',
+    r'package-lock\.json$',
+    r'tsconfig',
+    r'eslint',
+    r'prettier',
+    r'\.config\.',
+    r'makefile$',
+    r'dockerfile$',
+    r'docker-compose',
+    r'requirements\.txt$',
+    r'go\.mod$',
+    r'go\.sum$',
+    r'cargo\.toml$',
+    r'cargo\.lock$',
+    r'gemfile',
+    r'yarn\.lock$',
 ]
 
 # Blacklist patterns for folders to exclude (matched against folder path)

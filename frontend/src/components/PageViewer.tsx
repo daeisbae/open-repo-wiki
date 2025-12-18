@@ -75,9 +75,11 @@ export function PageViewer({
       const html = marked.parse(content) as string;
       contentRef.current.innerHTML = html;
 
-      // Find all mermaid code blocks and render them
+      // Find all mermaid code blocks
       const mermaidBlocks = contentRef.current.querySelectorAll('pre > code.language-mermaid');
+      const renderedDiagrams: HTMLElement[] = [];
       
+      // Render all mermaid diagrams first
       for (let i = 0; i < mermaidBlocks.length; i++) {
         const block = mermaidBlocks[i];
         const code = block.textContent || '';
@@ -85,20 +87,73 @@ export function PageViewer({
         
         if (pre) {
           try {
-            const { svg } = await mermaid.render(`mermaid-${i}`, code);
+            // Use timestamp + index for unique ID to avoid conflicts
+            const { svg } = await mermaid.render(`mermaid-${Date.now()}-${i}`, code);
             const container = document.createElement('div');
             container.className = 'mermaid-diagram';
             container.innerHTML = svg;
-            pre.replaceWith(container);
+            renderedDiagrams.push(container);
+            // Remove the original pre block
+            pre.remove();
           } catch (err) {
-            console.error('Failed to render mermaid diagram:', err);
+            // Silently ignore mermaid syntax errors - just hide the broken diagram
+            console.warn('Skipping invalid mermaid diagram:', err);
+            pre.remove(); // Remove the broken mermaid block entirely
           }
         }
       }
+      
+      // Move all diagrams to right after the first heading (title)
+      if (renderedDiagrams.length > 0 && contentRef.current) {
+        const firstHeading = contentRef.current.querySelector('h1, h2, h3');
+        const firstParagraph = contentRef.current.querySelector('p');
+        
+        // Create a container for all diagrams
+        const diagramsContainer = document.createElement('div');
+        diagramsContainer.className = 'diagrams-section';
+        
+        // Add all diagrams to the container (no heading)
+        renderedDiagrams.forEach(diagram => {
+          diagramsContainer.appendChild(diagram);
+        });
+
+        
+        // Insert after the first heading+paragraph (title section), before rest of content
+        if (firstHeading && firstParagraph) {
+          // Find the paragraph right after the heading
+          let insertPoint = firstParagraph.nextSibling;
+          if (insertPoint) {
+            contentRef.current.insertBefore(diagramsContainer, insertPoint);
+          } else {
+            contentRef.current.appendChild(diagramsContainer);
+          }
+        } else if (firstHeading) {
+          // Just insert after the heading
+          if (firstHeading.nextSibling) {
+            contentRef.current.insertBefore(diagramsContainer, firstHeading.nextSibling);
+          } else {
+            contentRef.current.appendChild(diagramsContainer);
+          }
+        } else {
+          // No headings, just prepend
+          contentRef.current.insertBefore(diagramsContainer, contentRef.current.firstChild);
+        }
+        
+        // Remove any "Dependency Graph" headings that are now orphaned (diagrams moved away)
+        const allHeadings = contentRef.current.querySelectorAll('h1, h2, h3, h4');
+        allHeadings.forEach(heading => {
+          const text = heading.textContent?.toLowerCase().trim() || '';
+          if (text.includes('dependency graph') || text.includes('dependency diagram')) {
+            heading.remove();
+          }
+        });
+      }
+
     };
 
     renderContent();
   }, [content]);
+
 
   const handleExpandClick = () => {
     if (selectedNode && onExpandRequest) {
@@ -268,7 +323,7 @@ export function PageViewer({
           border: 1px solid #e2e8f0;
           border-radius: 0.5rem;
           padding: 1.5rem;
-          margin: 1.5rem 0;
+          margin: 0.5rem 0;
           overflow-x: auto;
           text-align: left;
         }
@@ -276,6 +331,19 @@ export function PageViewer({
         .mermaid-diagram svg {
           max-width: 100%;
           height: auto;
+        }
+
+        /* Diagram section with heading */
+        .diagrams-section {
+          margin: 1.5rem 0;
+        }
+
+        .diagram-heading {
+          font-size: 1.5rem !important;
+          font-weight: 600 !important;
+          color: #1a1a1a !important;
+          margin-top: 0 !important;
+          margin-bottom: 0.75rem !important;
         }
 
         /* Blockquote styling */

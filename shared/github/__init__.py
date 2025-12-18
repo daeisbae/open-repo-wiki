@@ -21,6 +21,11 @@ from shared.github.filter import (
     BLACKLISTED_FILE_PATTERNS,
     BLACKLISTED_FOLDER_PATTERNS,
 )
+from shared.github.collapse import (
+    collapse_single_child_folders,
+    get_folder_display_order,
+    CollapsedFolder,
+)
 
 __all__ = [
     # Client
@@ -38,4 +43,9 @@ __all__ = [
     "WHITELISTED_FILE_PATTERNS",
     "BLACKLISTED_FILE_PATTERNS",
     "BLACKLISTED_FOLDER_PATTERNS",
+    # Collapse
+    "collapse_single_child_folders",
+    "get_folder_display_order",
+    "CollapsedFolder",
 ]
+
