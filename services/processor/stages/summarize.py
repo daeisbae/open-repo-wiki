@@ -37,7 +37,7 @@ logger.setLevel(logging.INFO)
 
 # Configuration for token processing
 TOKEN_PROCESSING_CONFIG = {
-    "character_limit": 50000,
+    "character_limit": 60000,
     "reduce_char_per_retry": 10000,
     "max_retries": 3,
 }
@@ -150,17 +150,11 @@ class SummarizeStage:
             files = [item for item in filtered_tree.items if item.type == "blob"]
             folders = [item for item in filtered_tree.items if item.type == "tree"]
             
-            # Process files (full mode only)
-            if not folder_only_mode:
-                files_processed = await self._summarize_files(
-                    repo_id, branch, files, repo_info
-                )
-            else:
-                # In folder-only mode, still store file nodes without summaries
-                files_processed = await self._store_file_nodes_only(
-                    repo_id, branch, files
-                )
-                logger.info("Skipping file summarization (folder-only mode)")
+            # Always summarize files - folder summaries depend on child file summaries
+            # (folder_only_mode only affects what's shown in UI, not summarization)
+            files_processed = await self._summarize_files(
+                repo_id, branch, files, repo_info
+            )
             
             # Process folders
             folders_processed = await self._summarize_folders(

@@ -24,7 +24,9 @@ export function RepoForm({ onSubmit, isLoading = false, error }: RepoFormProps) 
 
     if (match) {
       const [, owner, repo] = match;
-      await onSubmit(owner, repo);
+      // Strip .git suffix if present (e.g., from URLs like https://github.com/owner/repo.git)
+      const cleanedRepo = repo.endsWith('.git') ? repo.slice(0, -4) : repo;
+      await onSubmit(owner, cleanedRepo);
     }
   };
 
