@@ -28,6 +28,19 @@ resource "aws_dynamodb_table" "main" {
     type = "S"
   }
 
+  attribute {
+    name = "parent_path"
+    type = "S"
+  }
+
+  # GSI for querying tree nodes by parent path (for optimized folder listing)
+  global_secondary_index {
+    name            = "ParentPathIndex"
+    hash_key        = "PK"
+    range_key       = "parent_path"
+    projection_type = "ALL"
+  }
+
   # Enable point-in-time recovery for data protection
   point_in_time_recovery {
     enabled = var.enable_point_in_time_recovery

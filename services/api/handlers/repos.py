@@ -147,7 +147,7 @@ def get_tree(event: dict[str, Any], context: Any) -> dict[str, Any]:
 
 
 def get_page(event: dict[str, Any], context: Any) -> dict[str, Any]:
-    """Get page content (markdown summary) for a repository node.
+    """Get page content for a repository node.
     
     GET /repos/{repoId}/page?branch=...&path=...
     
@@ -159,8 +159,14 @@ def get_page(event: dict[str, Any], context: Any) -> dict[str, Any]:
         path: Node path to get content for (required)
     
     Response:
-        200: {"content": "markdown string", "available": true}
-        200: {"content": "", "available": false} (folder-only mode, no summary)
+        200: {
+            "usage": "Brief description",
+            "summary": "Detailed markdown summary",
+            "dependency_graph": "Mermaid diagram or empty",
+            "available": true,
+            "legacy": false  # Indicates if this is legacy markdown format
+        }
+        200: {"usage": "", "summary": "", "dependency_graph": "", "available": false}
         400: {"error": {"code": "INVALID_INPUT", "message": "..."}}
         404: {"error": {"code": "NODE_NOT_FOUND", "message": "..."}}
         500: {"error": {"code": "INTERNAL_ERROR", "message": "..."}}
@@ -168,7 +174,8 @@ def get_page(event: dict[str, Any], context: Any) -> dict[str, Any]:
     Requirements: 7.3, 7.4, 7.5
     """
     try:
-        # Extract parameters
+        import json as json_lib
+        
         # Extract parameters
         repo_id = _get_repo_id(event)
         
@@ -198,21 +205,53 @@ def get_page(event: dict[str, Any], context: Any) -> dict[str, Any]:
         summary_ref = node.summary_ref
         
         if not summary_ref:
-            # Folder-only mode - no summary available (Requirements: 7.5)
-            return _build_response(200, {"content": "", "available": False})
+            # No summary available
+            return _build_response(200, {
+                "usage": "",
+                "summary": "",
+                "dependency_graph": "",
+                "available": False,
+                "legacy": False,
+            })
         
-        # Check if summary_ref is an S3 key or inline content
-        # S3 keys follow pattern: repos/<repoId>/branches/<branch>/pages/<path>.md
+        # Get the raw content
         if summary_ref.startswith("repos/"):
-            # Fetch from S3 (Requirements: 7.4)
+            # Fetch from S3
             content = s3_client.get_page(summary_ref)
             if content is None:
-                # S3 object not found - treat as unavailable
-                return _build_response(200, {"content": "", "available": False})
-            return _build_response(200, {"content": content, "available": True})
+                return _build_response(200, {
+                    "usage": "",
+                    "summary": "",
+                    "dependency_graph": "",
+                    "available": False,
+                    "legacy": False,
+                })
         else:
-            # Inline summary content stored directly in DynamoDB
-            return _build_response(200, {"content": summary_ref, "available": True})
+            # Inline content in DynamoDB
+            content = summary_ref
+        
+        # Try to parse as JSON (new format)
+        try:
+            parsed = json_lib.loads(content)
+            if isinstance(parsed, dict) and "usage" in parsed and "summary" in parsed:
+                return _build_response(200, {
+                    "usage": parsed.get("usage", ""),
+                    "summary": parsed.get("summary", ""),
+                    "dependency_graph": parsed.get("dependency_graph", ""),
+                    "available": True,
+                    "legacy": False,
+                })
+        except (json_lib.JSONDecodeError, TypeError):
+            pass
+        
+        # Legacy markdown format - return as-is in summary field
+        return _build_response(200, {
+            "usage": "",
+            "summary": content,
+            "dependency_graph": "",
+            "available": True,
+            "legacy": True,
+        })
         
     except APIError as e:
         return _build_error_response(e)

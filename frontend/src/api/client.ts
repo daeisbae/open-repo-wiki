@@ -161,21 +161,16 @@ export async function getTree(
   branch: string,
   path: string
 ): Promise<TreeNode[]> {
-  const params = new URLSearchParams({
-    branch,
-    path,
-  });
-
   // Split repoId into owner/name for proper URL structure
   const [owner, name] = repoId.split('/');
   
+  // Build query string manually - don't encode slashes in path (API Gateway limitation)
+  const queryString = `branch=${encodeURIComponent(branch)}&path=${path}`;
+  
   const response = await fetch(
-    `${API_BASE_URL}/repos/${encodeURIComponent(owner)}/${encodeURIComponent(name)}/tree?${params}`,
+    `${API_BASE_URL}/repos/${encodeURIComponent(owner)}/${encodeURIComponent(name)}/tree?${queryString}`,
     {
       method: 'GET',
-      headers: {
-        'Content-Type': 'application/json',
-      },
     }
   );
 
@@ -205,21 +200,16 @@ export async function getPage(
   branch: string,
   path: string
 ): Promise<PageContent> {
-  const params = new URLSearchParams({
-    branch,
-    path,
-  });
-
   // Split repoId into owner/name for proper URL structure
   const [owner, name] = repoId.split('/');
   
+  // Build query string manually - don't encode slashes in path (API Gateway limitation)
+  const queryString = `branch=${encodeURIComponent(branch)}&path=${path}`;
+  
   const response = await fetch(
-    `${API_BASE_URL}/repos/${encodeURIComponent(owner)}/${encodeURIComponent(name)}/page?${params}`,
+    `${API_BASE_URL}/repos/${encodeURIComponent(owner)}/${encodeURIComponent(name)}/page?${queryString}`,
     {
       method: 'GET',
-      headers: {
-        'Content-Type': 'application/json',
-      },
     }
   );
 

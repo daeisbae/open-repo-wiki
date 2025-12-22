@@ -167,6 +167,10 @@ class DynamoDBClient:
             
         Requirements: 2.4
         """
+        # Handle empty parent_path for GSI compatibility
+        if not node.parent_path:
+            node.parent_path = "/"
+            
         item = node.to_dynamodb_item()
         self._main_table.put_item(Item=item)
 
@@ -180,6 +184,9 @@ class DynamoDBClient:
         """
         with self._main_table.batch_writer() as batch:
             for node in nodes:
+                # Handle empty parent_path for GSI compatibility
+                if not node.parent_path:
+                    node.parent_path = "/"
                 batch.put_item(Item=node.to_dynamodb_item())
 
     def query_tree(
@@ -204,11 +211,26 @@ class DynamoDBClient:
         """
         pk = TreeNode.generate_pk(repo_id, branch)
         
-        # Query all nodes with this PK and filter by parent_path
-        response = self._main_table.query(
-            KeyConditionExpression=Key("PK").eq(pk),
-            FilterExpression=Attr("parent_path").eq(path),
-        )
+        # Query tree nodes using GSI (Requirements: 7.1)
+        # Using GSI allows efficient lookup by parent_path without scanning
+        # Use "/" as sentinel for empty parent_path (GSI keys cannot be empty)
+        query_path = path if path else "/"
+        
+        try:
+            response = self._main_table.query(
+                IndexName="ParentPathIndex",
+                KeyConditionExpression=Key("PK").eq(pk) & Key("parent_path").eq(query_path),
+            )
+        except Exception as e:
+            # Fallback for environments without GSI (e.g., LocalStack)
+            # Use filter expression instead (less efficient but works)
+            if "Index not found" in str(e) or "ResourceNotFoundException" in str(e):
+                response = self._main_table.query(
+                    KeyConditionExpression=Key("PK").eq(pk),
+                    FilterExpression=Attr("parent_path").eq(path),
+                )
+            else:
+                raise
         
         nodes = [TreeNode.from_dynamodb_item(item) for item in response.get("Items", [])]
         

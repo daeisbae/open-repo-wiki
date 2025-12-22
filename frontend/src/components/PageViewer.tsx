@@ -4,8 +4,11 @@ import mermaid from 'mermaid';
 import type { TreeNode } from './TreeBrowser';
 
 export interface PageContent {
-  content: string;
+  usage: string;
+  summary: string;
+  dependency_graph: string;
   available: boolean;
+  legacy: boolean;
 }
 
 interface PageViewerProps {
@@ -52,7 +55,27 @@ export function PageViewer({
       setIsLoading(true);
       try {
         const page = await fetchPage(repoId, branch, selectedNode.path);
-        setContent(page.content);
+        
+        // Compose content from structured fields
+        if (page.legacy) {
+          // Legacy format: summary contains full markdown
+          setContent(page.summary);
+        } else if (page.available) {
+          // New format: compose from usage, summary, and dependency_graph
+          let composedContent = '';
+          if (page.usage) {
+            composedContent += `**${page.usage}**\n\n`;
+          }
+          if (page.summary) {
+            composedContent += page.summary;
+          }
+          if (page.dependency_graph) {
+            composedContent += `\n\n## Dependency Graph\n\n\`\`\`mermaid\n${page.dependency_graph}\n\`\`\``;
+          }
+          setContent(composedContent);
+        } else {
+          setContent('');
+        }
         setIsAvailable(page.available);
       } catch (err) {
         console.error('Failed to load page:', err);

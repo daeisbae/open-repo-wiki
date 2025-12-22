@@ -79,10 +79,12 @@ You will receive the following information, summarized from the expert software 
 *   Use SHORT labeled arrows (under 5 words) that describe the relationship/action.
 *   Good labels: "provides config to", "transforms data for", "reports errors to", "validates input for", "extends", "implements", "fetches from", "stores in", "parses for", "informs", "uses models from"
 *   Only show meaningful relationships between files in this folder.
-*   Keep node names short (just filename without extension).
+*   CRITICAL: Use SAFE, alphanumeric identifiers for nodes (no special chars like /, @, -, or spaces). Use the filename as the LABEL.
+*   Format: safe_id["Filename"]
 *   Example:
     graph TD
-        services -->|uses models from| models
+        services["services"] -->|uses models from| shared_models["@shared/models"]
+        api_client["api-client"] -->|calls| backend_api["backend/api"]
         views -->|delegates to| services
         tasks -->|async wrapper for| services
         config -->|provides settings to| services

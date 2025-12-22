@@ -61,11 +61,7 @@ variable "s3_artifacts_bucket_name" {
   type        = string
 }
 
-variable "max_files_for_full_summary" {
-  description = "Maximum number of files for full summary mode"
-  type        = number
-  default     = 100
-}
+
 
 variable "llm_provider" {
   description = "LLM provider name (deepseek, openrouter)"

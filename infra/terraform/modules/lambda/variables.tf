@@ -44,13 +44,13 @@ variable "runtime" {
 variable "timeout" {
   description = "Lambda timeout in seconds"
   type        = number
-  default     = 30
+  default     = 60
 }
 
 variable "memory_size" {
   description = "Lambda memory size in MB"
   type        = number
-  default     = 256
+  default     = 1024
 }
 
 variable "log_retention_days" {

@@ -49,18 +49,15 @@ class FilterTreeStage:
         self,
         dynamodb_client: DynamoDBClient,
         job_id: str,
-        max_files_for_full_summary: int = 100,
     ):
         """Initialize the filter tree stage.
         
         Args:
             dynamodb_client: DynamoDB client for progress updates.
             job_id: Job identifier for progress updates.
-            max_files_for_full_summary: Threshold for folder-only mode.
         """
         self.dynamodb = dynamodb_client
         self.job_id = job_id
-        self.max_files_for_full_summary = max_files_for_full_summary
 
     def execute(self, tree: TreeResult) -> FilterTreeResult:
         """Execute the filter tree stage.
@@ -90,22 +87,16 @@ class FilterTreeStage:
             # Count filtered files
             file_count = count_filtered_files(filtered_tree)
             
-            # Determine processing mode based on file count
-            folder_only_mode = file_count > self.max_files_for_full_summary
-            
-            mode_str = "folder-only" if folder_only_mode else "full"
-            logger.info(f"Filtering complete: {file_count} files, mode={mode_str}")
-            
-            # Update job with total count and mode info
+            # Update job with total count
             self._update_progress_with_total(
                 file_count,
-                f"Found {file_count} files to process ({mode_str} mode)",
+                f"Found {file_count} files to process",
             )
             
             return FilterTreeResult(
                 filtered_tree=filtered_tree,
                 file_count=file_count,
-                folder_only_mode=folder_only_mode,
+                folder_only_mode=False,
             )
             
         except Exception as e:

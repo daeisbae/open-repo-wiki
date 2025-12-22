@@ -2,7 +2,7 @@
 # Minimal dependencies for AWS Lambda deployment
 
 # AWS SDK
-boto3>=2.49.0
+
 
 # HTTP client for async operations (used by shared modules)
 aiohttp>=3.9.0

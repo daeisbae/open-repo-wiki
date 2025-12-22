@@ -56,15 +56,14 @@ class SummarizeResult:
     """Result of the summarization stage."""
     files_processed: int
     folders_processed: int
-    folder_only_mode: bool
 
 
 class SummarizeStage:
     """Stage for generating AI summaries for files and folders.
     
     This stage:
-    1. In full mode: summarizes all files, then folders
-    2. In folder-only mode: only summarizes folders
+    1. Summarizes all files first
+    2. Then summarizes folders (using child summaries)
     3. Stores tree nodes in DynamoDB
     4. Writes large summaries to S3
     5. Updates job progress periodically
@@ -110,7 +109,6 @@ class SummarizeStage:
         repo_id: str,
         branch: str,
         filtered_tree: TreeResult,
-        folder_only_mode: bool,
         repo_owner: str,
         repo_name: str,
         commit_sha: str,
@@ -121,7 +119,6 @@ class SummarizeStage:
             repo_id: Repository identifier (owner/name).
             branch: Branch name.
             filtered_tree: Filtered tree from previous stage.
-            folder_only_mode: Whether to skip file summarization.
             repo_owner: Repository owner.
             repo_name: Repository name.
             commit_sha: Commit SHA for fetching files.
@@ -151,14 +148,13 @@ class SummarizeStage:
             folders = [item for item in filtered_tree.items if item.type == "tree"]
             
             # Always summarize files - folder summaries depend on child file summaries
-            # (folder_only_mode only affects what's shown in UI, not summarization)
             files_processed = await self._summarize_files(
                 repo_id, branch, files, repo_info
             )
             
             # Process folders
             folders_processed = await self._summarize_folders(
-                repo_id, branch, folders, files, repo_info, folder_only_mode
+                repo_id, branch, folders, files, repo_info
             )
             
             # Create root folder summary (aggregates top-level items)
@@ -169,7 +165,6 @@ class SummarizeStage:
             return SummarizeResult(
                 files_processed=files_processed,
                 folders_processed=folders_processed,
-                folder_only_mode=folder_only_mode,
             )
             
         except Exception as e:
@@ -342,7 +337,7 @@ class SummarizeStage:
             repo_info: Repository info for context.
             
         Returns:
-            Generated summary or None if failed.
+            Generated summary as JSON string or None if failed.
             
         Requirements: 5.6
         """
@@ -368,9 +363,14 @@ class SummarizeStage:
                 # Generate summary using CodeProcessor
                 result: FileSchema = await self.code_processor.generate(reduced_content, info)
                 
-                # Format the summary with usage header
-                summary = f"**{result.usage}**\n\n{result.summary}"
-                return summary
+                # Store as JSON for consistent format with folder summaries
+                import json
+                summary_data = {
+                    "usage": result.usage,
+                    "summary": result.summary,
+                    "dependency_graph": "",  # Files don't have dependency graphs
+                }
+                return json.dumps(summary_data)
                 
             except Exception as e:
                 logger.warning(f"LLM call failed for {path}: {e}")
@@ -380,57 +380,7 @@ class SummarizeStage:
         
         return None
 
-    async def _store_file_nodes_only(
-        self,
-        repo_id: str,
-        branch: str,
-        files: List[TreeItem],
-    ) -> int:
-        """Store file nodes without summaries (folder-only mode).
-        
-        Args:
-            repo_id: Repository identifier.
-            branch: Branch name.
-            files: List of file TreeItems.
-            
-        Returns:
-            Number of files stored.
-        """
-        logger.info(f"Storing {len(files)} file nodes (folder-only mode)")
-        await self._update_progress(
-            JobStage.SUMMARIZE_FILES,
-            0,
-            len(files),
-            "Storing file metadata (folder-only mode)...",
-        )
-        
-        nodes = []
-        for file_item in files:
-            parent_path = "/".join(file_item.path.split("/")[:-1])
-            node = TreeNode(
-                repo_id=repo_id,
-                branch=branch,
-                path=file_item.path,
-                node_type=NodeType.FILE,
-                parent_path=parent_path,
-                name=file_item.path.split("/")[-1],
-                sha=file_item.sha,
-                size=file_item.size,
-                summary_ref=None,  # No summary in folder-only mode
-            )
-            nodes.append(node)
-        
-        # Batch write nodes
-        self.dynamodb.put_nodes_batch(nodes)
-        
-        await self._update_progress(
-            JobStage.SUMMARIZE_FILES,
-            len(files),
-            len(files),
-            f"Stored {len(files)} file nodes",
-        )
-        
-        return len(files)
+
 
     async def _summarize_folders(
         self,
@@ -439,7 +389,6 @@ class SummarizeStage:
         folders: List[TreeItem],
         files: List[TreeItem],
         repo_info: Dict[str, str],
-        folder_only_mode: bool,
     ) -> int:
         """Summarize all folders and store in DynamoDB/S3.
         
@@ -449,7 +398,6 @@ class SummarizeStage:
             folders: List of folder TreeItems.
             files: List of file TreeItems (for building folder contents).
             repo_info: Repository info for LLM context.
-            folder_only_mode: Whether in folder-only mode.
             
         Returns:
             Number of folders processed.
@@ -485,7 +433,7 @@ class SummarizeStage:
             for folder_item in depth_folders:
                 tasks.append(
                     self._process_folder(
-                        repo_id, branch, folder_item, files, repo_info, folder_only_mode
+                        repo_id, branch, folder_item, files, repo_info
                     )
                 )
             
@@ -517,7 +465,6 @@ class SummarizeStage:
         folder_item: TreeItem,
         files: List[TreeItem],
         repo_info: Dict[str, str],
-        folder_only_mode: bool,
     ) -> None:
         """Process a single folder: gather child summaries, generate summary, store.
         
@@ -527,7 +474,6 @@ class SummarizeStage:
             folder_item: Folder TreeItem.
             files: All file TreeItems.
             repo_info: Repository info for LLM context.
-            folder_only_mode: Whether in folder-only mode.
         """
         # Get child file summaries from DynamoDB
         child_summaries = []
@@ -635,14 +581,15 @@ class SummarizeStage:
                 # Generate summary using FolderProcessor
                 result: FolderSchema = await self.folder_processor.generate(reduced_summaries, info)
                 
-                # Format the summary with usage header and dependency graph
-                summary_parts = [f"**{result.usage}**\n\n{result.summary}"]
-                
-                # Only include dependency graph if it has actual relationships (contains -->)
-                if result.dependency_graph and "-->" in result.dependency_graph:
-                    summary_parts.append(f"\n\n## Dependency Graph\n\n```mermaid\n{result.dependency_graph}\n```")
-                
-                return "".join(summary_parts)
+                # Store as JSON instead of combined markdown
+                # This allows frontend to handle each field separately
+                import json
+                summary_data = {
+                    "usage": result.usage,
+                    "summary": result.summary,
+                    "dependency_graph": result.dependency_graph if result.dependency_graph and "-->" in result.dependency_graph else "",
+                }
+                return json.dumps(summary_data)
                 
             except Exception as e:
                 logger.warning(f"LLM call failed for folder {path}: {e}")

@@ -85,7 +85,6 @@ class ProcessorConfig:
     ddb_jobs_table: str
     s3_bucket: str
     github_token: str
-    max_files_for_full_summary: int
     aws_region: str
 
     @classmethod
@@ -104,7 +103,6 @@ class ProcessorConfig:
         
         Optional environment variables:
         - BRANCH: Branch to process (defaults to repo's default branch)
-        - MAX_FILES_FOR_FULL_SUMMARY: Threshold for folder-only mode (default: 100)
         - AWS_REGION: AWS region (default: us-east-1)
         
         Raises:
@@ -135,7 +133,6 @@ class ProcessorConfig:
             ddb_jobs_table=os.environ["DDB_JOBS_TABLE"],
             s3_bucket=os.environ["S3_BUCKET"],
             github_token=os.environ["GITHUB_TOKEN"],
-            max_files_for_full_summary=int(os.environ.get("MAX_FILES_FOR_FULL_SUMMARY", "100")),
             aws_region=os.environ.get("AWS_REGION", "us-east-1"),
         )
 
@@ -191,7 +188,6 @@ class RepositoryProcessor:
         self.repo_details: Optional[RepoDetails] = None
         self.tree_result: Optional[TreeResult] = None
         self.filtered_tree: Optional[TreeResult] = None
-        self.folder_only_mode: bool = False
         self.branch: Optional[str] = None
 
     def _init_llm_provider(self) -> Optional[LLMProvider]:
@@ -350,25 +346,20 @@ class RepositoryProcessor:
         # Count filtered files
         file_count = count_filtered_files(self.filtered_tree)
         
-        # Determine processing mode
-        self.folder_only_mode = file_count > self.config.max_files_for_full_summary
-        
-        mode_str = "folder-only" if self.folder_only_mode else "full"
-        logger.info(f"Filtering complete: {file_count} files, mode={mode_str}")
+        logger.info(f"Filtering complete: {file_count} files")
         
         # Update job with total count
         self._update_job_progress(
             JobStage.FILTER,
             total=file_count,
-            message=f"Found {file_count} files to process ({mode_str} mode)",
+            message=f"Found {file_count} files to process",
         )
 
     async def _summarize(self) -> None:
         """Generate summaries for files and folders.
         
         Uses the SummarizeStage to process files and folders with LLM.
-        In full mode: summarizes all files, then folders.
-        In folder-only mode: only summarizes folders.
+        Always summarizes all files first, then folders.
         
         Requirements: 5.6, 5.7
         """
@@ -389,7 +380,6 @@ class RepositoryProcessor:
                 repo_id=self.repo_id,
                 branch=self.branch,
                 filtered_tree=self.filtered_tree,
-                folder_only_mode=self.folder_only_mode,
                 repo_owner=self.config.repo_owner,
                 repo_name=self.config.repo_name,
                 commit_sha=self.repo_details.sha,
@@ -397,7 +387,7 @@ class RepositoryProcessor:
             
             logger.info(
                 f"Summarization complete: {result.files_processed} files, "
-                f"{result.folders_processed} folders, folder_only={result.folder_only_mode}"
+                f"{result.folders_processed} folders"
             )
             
         except SummarizeError as e:

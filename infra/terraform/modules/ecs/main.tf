@@ -99,10 +99,7 @@ resource "aws_ecs_task_definition" "processor" {
           name  = "S3_BUCKET"
           value = var.s3_artifacts_bucket_name
         },
-        {
-          name  = "MAX_FILES_FOR_FULL_SUMMARY"
-          value = tostring(var.max_files_for_full_summary)
-        },
+
         {
           name  = "AWS_REGION"
           value = var.aws_region

@@ -59,13 +59,27 @@ export function ScrollableContent({
     );
   }, [folders]);
 
+  // Helper to compose content from structured PageContent
+  const composeContent = (page: PageContent): string => {
+    if (page.legacy) {
+      return page.summary;
+    }
+    let content = '';
+    if (page.usage) content += `**${page.usage}**\n\n`;
+    if (page.summary) content += page.summary;
+    if (page.dependency_graph) {
+      content += `\n\n## Dependency Graph\n\n\`\`\`mermaid\n${page.dependency_graph}\n\`\`\``;
+    }
+    return content;
+  };
+
   // Load root summary on mount
   useEffect(() => {
     const loadRootSummary = async () => {
       setIsLoadingRoot(true);
       try {
         const page = await fetchPage(repoId, branch, '');
-        setRootSummary(page.content);
+        setRootSummary(page.available ? composeContent(page) : null);
       } catch (err) {
         console.error('Failed to load root summary:', err);
         setRootSummary(null);
@@ -87,10 +101,11 @@ export function ScrollableContent({
 
       try {
         const page = await fetchPage(repoId, branch, path);
+        const composedSummary = page.available ? composeContent(page) : null;
         setSections((prev) =>
           prev.map((s) =>
             s.path === path
-              ? { ...s, summary: page.content, isLoading: false, isLoaded: true }
+              ? { ...s, summary: composedSummary, isLoading: false, isLoaded: true }
               : s
           )
         );
