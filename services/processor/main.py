@@ -68,6 +68,11 @@ class LLMError(ProcessorError):
     pass
 
 
+class FileLimitExceededError(ProcessorError):
+    """File count exceeds configured limit for automatic summarization."""
+    pass
+
+
 @dataclass
 class ProcessorConfig:
     """Configuration for the repository processor.
@@ -86,6 +91,7 @@ class ProcessorConfig:
     s3_bucket: str
     github_token: str
     aws_region: str
+    max_file_limit: int
 
     @classmethod
     def from_environment(cls) -> "ProcessorConfig":
@@ -134,6 +140,7 @@ class ProcessorConfig:
             s3_bucket=os.environ["S3_BUCKET"],
             github_token=os.environ["GITHUB_TOKEN"],
             aws_region=os.environ.get("AWS_REGION", "us-east-1"),
+            max_file_limit=int(os.environ.get("MAX_FILE_LIMIT", "1000")),
         )
 
 
@@ -345,6 +352,16 @@ class RepositoryProcessor:
         
         # Count filtered files
         file_count = count_filtered_files(self.filtered_tree)
+        
+        # Check file limit before starting summarization
+        if file_count > self.config.max_file_limit:
+            error_msg = (
+                f"Repository has {file_count} files which exceeds the limit of "
+                f"{self.config.max_file_limit}. Huge repository summarization is "
+                f"only done through manual request for now."
+            )
+            logger.warning(error_msg)
+            raise FileLimitExceededError("FILTER", error_msg)
         
         logger.info(f"Filtering complete: {file_count} files")
         

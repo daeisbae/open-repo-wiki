@@ -60,8 +60,8 @@ function TreeNodeItem({
   fetchTree,
   level,
 }: TreeNodeItemProps) {
-  // All folders start expanded to show full hierarchy
-  const [isOpen, setIsOpen] = useState(true);
+  // All folders start expanded and stay open permanently
+  const [isOpen] = useState(true);
   const [children, setChildren] = useState<TreeNode[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [hasLoaded, setHasLoaded] = useState(false);
@@ -95,9 +95,7 @@ function TreeNodeItem({
     e.preventDefault();
     e.stopPropagation();
     
-    if (isFolder) {
-      setIsOpen(!isOpen);
-    }
+    // Folders always stay open once rendered - no toggle
     onSelectNode(node);
   };
 

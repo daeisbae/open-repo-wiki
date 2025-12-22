@@ -75,6 +75,12 @@ variable "llm_model_name" {
   default     = "deepseek-chat"
 }
 
+variable "max_file_limit" {
+  description = "Maximum number of files allowed for automatic summarization"
+  type        = number
+  default     = 1000
+}
+
 variable "task_cpu" {
   description = "CPU units for the Fargate task (256, 512, 1024, 2048, 4096)"
   type        = number

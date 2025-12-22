@@ -29,8 +29,15 @@ mkdir -p "$OUTPUT_DIR"
 BUILD_DIR=$(mktemp -d)
 trap "rm -rf $BUILD_DIR" EXIT
 
-echo "Installing dependencies..."
-pip install -r "$SCRIPT_DIR/requirements.txt" -t "$BUILD_DIR" --quiet
+echo "Installing dependencies (forcing x86_64 Linux)..."
+pip install -r "$SCRIPT_DIR/requirements.txt" \
+    -t "$BUILD_DIR" \
+    --platform manylinux2014_x86_64 \
+    --implementation cp \
+    --python-version 3.11 \
+    --only-binary=:all: \
+    --upgrade \
+    --quiet
 
 echo "Copying application code..."
 # Copy shared libraries

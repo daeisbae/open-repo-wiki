@@ -111,6 +111,10 @@ resource "aws_ecs_task_definition" "processor" {
         {
           name  = "LLM_MODELNAME"
           value = var.llm_model_name
+        },
+        {
+          name  = "MAX_FILE_LIMIT"
+          value = tostring(var.max_file_limit)
         }
       ]
 

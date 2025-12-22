@@ -49,6 +49,7 @@ def _build_response(status_code: int, body: dict[str, Any]) -> dict[str, Any]:
             "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
         },
         "body": json.dumps(body),
+        "isBase64Encoded": False,
     }
 
 
