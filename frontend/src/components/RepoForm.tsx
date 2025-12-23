@@ -53,7 +53,7 @@ export function RepoForm({ onSubmit, isLoading = false, error }: RepoFormProps) 
                   value={input}
                   onChange={(e) => setInput(e.target.value)}
                   className="w-full rounded-full border-gray-300 py-4 pl-6 pr-16 text-lg border outline-none focus:border-black focus:ring-0"
-                  placeholder="Enter GitHub repository (e.g., owner/repo)"
+                  placeholder="Enter GitHub repository (e.g., daeisbae/open-repo-wiki)"
                   style={{ boxShadow: '0 0 15px rgba(0,0,0,0.1)' }}
                   disabled={isLoading}
                 />
